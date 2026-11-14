@@ -516,6 +516,13 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap:not(:has(.session-item.active)):hover .session-spin {
   color: var(--accent-fg);
 }
+/* 悬停色的底色必须跟着同一个条件铺上。右侧三个操作按钮是 .session-item 的兄弟节点，
+   悬停按钮时 .session-item:hover 不成立、但 :hover 会冒到 .session-wrap 上；
+   只靠 .session-item:hover 上底色，就会出现「标题被刷成 --accent-fg、行底色却没变」，
+   而各皮肤的 --accent-fg 都贴近侧栏底色，看起来整行标题直接消失。 */
+.session-wrap:not(:has(.session-item.active)):hover .session-item {
+  background: var(--bg-hover);
+}
 .session-item:hover { background: var(--bg-hover); }
 .session-item.active { background: var(--bg-selected); color: var(--text-selected); }
 .session-item.active::before { display: none; }
@@ -3922,3 +3929,261 @@ html[data-skin="aurora"][data-theme="dark"] {
     box-shadow: var(--shadow-drawer);
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * 皮肤：赛博终端（cyber）
+ * 冷黑底 + 青蓝主色 + 直角细边；新对话按钮带 CRT 扫描线。
+ * 取色参考 pi-rpc-web 的界面截图，组件与布局仍用本项目自己的。
+ * ------------------------------------------------------------------ */
+html[data-skin="cyber"] {
+  --radius: 0;
+  --radius-lg: 0;
+  --border-width: 1px;
+
+  /* CRT 扫描线：1px 暗线 + 2px 间隙，周期 3px */
+  --crt-lines: repeating-linear-gradient(180deg, #00000061 0 1px, transparent 1px 3px);
+  /* 青色外发光：选中行、输入框聚焦、发送键共用同一份 */
+  --cyber-glow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent),
+    0 0 16px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+html[data-skin="cyber"][data-theme="dark"] {
+  color-scheme: dark;
+
+  /* 描边退到冷灰蓝细线，深色里只做分隔，不抢主色 */
+  --ink: #1c1d31;
+  --paper: #10101c;
+
+  --bg-app: #090a12;
+  --bg-chat: #090a12;
+  --bg-sidebar: #0f0f1a;
+  --bg-elev: #10101c;
+  --bg-elev-2: #141423;
+  --bg-elev-3: #1c1d31;
+  --bg-code: #12121f;
+  --bg-inline-code: #00bdd41f;
+  --code-head: #171728;
+  --brand-tile: #00bdd4;
+
+  /* 悬停＝青底黑字，与主色同一套语义 */
+  --bg-hover: #00bdd4;
+  --bg-selected: #0d2531;
+  --text-selected: #7ff0ff;
+  --text-selected-muted: #4fb6c6;
+
+  --text-1: #e3e6f0;
+  --text-2: #c6cad8;
+  --text-3: #9aa0b4;
+  --text-4: #7c8298;
+  --text-disabled: #5b6076;
+
+  --border-soft: #16172a;
+  --border: #1c1d31;
+  --border-strong: #2c2e4a;
+
+  --accent: #00bdd4;
+  --accent-fg: #04141a;
+  --accent-hover: #2fd6ea;
+  --accent-pressed: #009aad;
+  --focus-ring: #00bdd4;
+  --blue: #6fb8ff;
+  --link: #4fd6e8;
+  --glow: #00bdd4;
+
+  --bg-user: #10101c;
+  --text-user: #e3e6f0;
+  --user-bubble-border: #1c1d31;
+
+  --green: #35e0a1;
+  --red: #ff5f6d;
+  --yellow: #ffd166;
+  --purple: #b18cff;
+  --on-danger: #04141a;
+
+  --diff-add-bg: #06231c;
+  --diff-add-fg: #35e0a1;
+  --diff-del-bg: #2a0d14;
+  --diff-del-fg: #ff8a94;
+
+  --tok-kw: #b18cff;
+  --tok-str: #35e0a1;
+  --tok-num: #ffd166;
+
+  /* 阴影走「一圈细边 + 青蓝微光」，不用硬偏移块影 */
+  --shadow-color: #000000;
+  --shadow-pop: 0 12px 28px #000000cc, 0 0 0 1px var(--border);
+  --shadow-composer: 0 10px 24px #000000a6;
+  --shadow-soft: 0 4px 12px #000000a6;
+  --shadow-accent: 0 0 0 1px #00bdd433, 0 0 14px #00bdd433;
+  --shadow-accent-strong: 0 0 0 1px #00bdd466, 0 0 20px #00bdd459;
+  --shadow-raised: 0 8px 20px #000000b3;
+  --shadow-card: 0 8px 20px #000000b3;
+  --shadow-modal: 0 18px 40px #000000e6;
+  --shadow-drawer: 8px 0 24px #000000cc;
+  --overlay-btn: #10101c;
+  --on-overlay: #e3e6f0;
+  --ring-track: #00bdd43d;
+  --scroll-thumb: #2c2e4a;
+  --scroll-thumb-hover: #00bdd4;
+  --scrim: #05060bd9;
+}
+
+html[data-skin="cyber"][data-theme="light"] {
+  color-scheme: light;
+
+  --ink: #c3cbdd;
+  --paper: #ffffff;
+
+  --bg-app: #f4f7fb;
+  --bg-chat: #f7f9fc;
+  --bg-sidebar: #ffffff;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f1f4fa;
+  --bg-elev-3: #e3e9f4;
+  --bg-code: #f1f4fa;
+  --bg-inline-code: #00707f14;
+  --code-head: #00707f0d;
+  --brand-tile: #00707f;
+
+  /* 浅色版沿用海盐那套：悬停＝深青底 + 白字 */
+  --bg-hover: #00505c;
+  --bg-selected: #e2f6fa;
+  --text-selected: #00454f;
+  --text-selected-muted: #3f7f8b;
+
+  --text-1: #0b1220;
+  --text-2: #26324a;
+  --text-3: #465270;
+  --text-4: #5f6b88;
+  --text-disabled: #8b95ad;
+
+  --border-soft: #e3e9f4;
+  --border: #d7dceb;
+  --border-strong: #b7c0d6;
+
+  --accent: #00707f;
+  --accent-fg: #ffffff;
+  --accent-hover: #005b68;
+  --accent-pressed: #00434c;
+  --focus-ring: #00707f;
+  --blue: #1f6feb;
+  --link: #006c7c;
+  --glow: #00707f;
+
+  --bg-user: #0b1220;
+  --text-user: #f4f7fb;
+  --user-bubble-border: #0b1220;
+
+  --green: #0a7a52;
+  --red: #c02b3a;
+  --yellow: #8a6100;
+  --purple: #6a4bb5;
+  --on-danger: #ffffff;
+
+  --diff-add-bg: #dcf7ea;
+  --diff-add-fg: #0a6b46;
+  --diff-del-bg: #ffe0e3;
+  --diff-del-fg: #a51f2c;
+
+  --tok-kw: #6a4bb5;
+  --tok-str: #0a7a52;
+  --tok-num: #8a6100;
+
+  --shadow-color: #0b1220;
+  --shadow-pop: 0 10px 24px #0b12201f, 0 0 0 1px var(--border);
+  --shadow-composer: 0 8px 20px #0b122014;
+  --shadow-soft: 0 4px 10px #0b122012;
+  --shadow-accent: 0 0 0 1px #00707f2e, 0 0 12px #00707f1f;
+  --shadow-accent-strong: 0 0 0 1px #00707f52, 0 0 18px #00707f2e;
+  --shadow-raised: 0 6px 16px #0b12201a;
+  --shadow-card: 0 6px 16px #0b12201a;
+  --shadow-modal: 0 18px 40px #0b122033;
+  --shadow-drawer: 8px 0 22px #0b12201f;
+  --overlay-btn: #ffffff;
+  --on-overlay: #0b1220;
+  --ring-track: #00707f3d;
+  --scroll-thumb: #c3cbdd;
+  --scroll-thumb-hover: #00707f;
+  --scrim: #0b122099;
+}
+
+/* ---- 新对话：青底黑字，铺一层 CRT 扫描线 ---- */
+html[data-skin="cyber"] .new-chat {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 84%, #ffffff) 0%,
+    var(--accent) 52%,
+    color-mix(in srgb, var(--accent) 88%, #000000) 100%
+  );
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: .14em;
+  box-shadow: var(--shadow-accent);
+}
+html[data-skin="cyber"] .new-chat:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-hover) 84%, #ffffff) 0%,
+    var(--accent-hover) 52%,
+    color-mix(in srgb, var(--accent-hover) 88%, #000000) 100%
+  );
+  box-shadow: var(--shadow-accent-strong);
+}
+html[data-skin="cyber"] .new-chat:active { background: var(--accent-pressed); }
+/* 扫描线盖在文字上才像屏幕；pointer-events 关掉，快捷键提示照常可点 */
+html[data-skin="cyber"] .new-chat::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--crt-lines);
+}
+html[data-skin="cyber"] .new-chat kbd {
+  font-family: var(--font-mono);
+  color: color-mix(in srgb, var(--accent-fg) 68%, transparent);
+}
+
+/* ---- 发送键：主色实心 + 青色外发光 ---- */
+html[data-skin="cyber"] .send { box-shadow: var(--shadow-accent); }
+html[data-skin="cyber"] .send:hover { box-shadow: var(--shadow-accent-strong); }
+html[data-skin="cyber"] .send[disabled] {
+  background: var(--bg-elev-2);
+  color: var(--text-disabled);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+/* ---- 输入框聚焦：边框转主色，外圈一点青光 ---- */
+html[data-skin="cyber"] .composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-composer), var(--cyber-glow);
+}
+
+/* ---- 当前会话行：细边一圈，把「正在用」标出来 ---- */
+html[data-skin="cyber"] .session-item.active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+/* ---- 工作区按钮：悬停只加一圈主色细边 + 青光，不整块铺满 ---- */
+html[data-skin="cyber"] .workspace {
+  transition:
+    background .16s var(--ease),
+    border-color .16s var(--ease),
+    box-shadow .16s var(--ease);
+}
+html[data-skin="cyber"] .workspace:hover {
+  background: var(--bg-elev-2);
+  border-color: var(--accent);
+  color: var(--text-1);
+  box-shadow: var(--cyber-glow);
+}
+html[data-skin="cyber"] .workspace:hover .ws-name { color: var(--text-1); }
+html[data-skin="cyber"] .workspace:hover .ws-icon,
+html[data-skin="cyber"] .workspace:hover .ws-caret { color: var(--accent); }
+
+/* ---- 本轮文件卡：列表不留上下内边距，悬停底色才能铺满整张卡片，
+       由卡片自己的圆角 + overflow: hidden 裁出边缘 ---- */
+html[data-skin="cyber"] .turn-list { padding: 0; }
+html[data-skin="cyber"] .turn-file { padding: 10px 16px; }
