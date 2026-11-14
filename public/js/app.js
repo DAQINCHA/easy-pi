@@ -4976,10 +4976,10 @@ function applyTheme(mode) {
 const SKINS = [
   { id: "classic", label: "单色反差" },
   { id: "paper", label: "纸上工作室" },
+  { id: "cyber", label: "赛博终端" },
   { id: "sea-salt", label: "蓝调海盐" },
   { id: "mint", label: "薄荷陶瓷" },
   { id: "aurora", label: "极光玻璃" },
-  { id: "cyber", label: "赛博终端" },
 ];
 
 // 旧备份皮肤的 id，迁移到正式皮肤上，避免已选的人被重置成默认皮肤。
