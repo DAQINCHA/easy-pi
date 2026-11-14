@@ -4975,7 +4975,7 @@ function applyTheme(mode) {
 
 const SKINS = [
   { id: "classic", label: "单色反差" },
-  { id: "paper", label: "纸上工作室" },
+  { id: "paper", label: "赭红纸本" },
   { id: "cyber", label: "赛博终端" },
   { id: "sea-salt", label: "蓝调海盐" },
   { id: "mint", label: "薄荷陶瓷" },
