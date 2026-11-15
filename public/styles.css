@@ -2698,11 +2698,13 @@ html[data-skin="sea-salt"] {
   --border-width: 1px;
 }
 
-/* 标识、空状态大图标统一同一档圆角；小尺寸按比例收小，
-   否则 16px 圆角会把 26px 的小方块压成纯圆 */
+/* 标识、空状态大图标统一同一档弧度。
+   两处尺寸差一倍（26px / 56px），写同一个圆角像素值时观感完全不同：
+   8px 落在 26px 上快成圆了，落在 56px 上只是个小圆角。
+   所以按边长取比例——小图标从此是大图标的等比缩小版（14.3% ≈ 56px 上的 8px）。 */
 html[data-skin="sea-salt"] .brand-mark,
 html[data-skin="sea-salt"] .empty-mark {
-  border-radius: calc(var(--radius) / 2);
+  border-radius: 14.3%;
 }
 html[data-skin="sea-salt"] .sidebar,
 html[data-skin="sea-salt"] .thread-inner,
@@ -3580,10 +3582,11 @@ html[data-skin="aurora"] .topbar {
   background: transparent;
   border-bottom-color: var(--border-soft);
 }
-/* 标识、大图标：统一同一档圆角，不再时而圆形时而圆角矩形 */
+/* 标识、大图标：弧度以侧栏那个 26px 小图标的 10px 为准（≈38.5%），
+   大图标跟着同一个比例走。原先两边都硬写 10px，小的看着圆、大的看着方。 */
 html[data-skin="aurora"] .brand-mark,
 html[data-skin="aurora"] .empty-mark {
-  border-radius: 10px;
+  border-radius: 38.5%;
   background: var(--aurora-tile);
   border-color: var(--aurora-line-strong);
 }
