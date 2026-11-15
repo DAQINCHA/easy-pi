@@ -542,9 +542,12 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap:not(:has(.session-item.active)):hover .session-item .t,
 .session-wrap:not(:has(.session-item.active)):hover .session-item .m,
 .session-wrap:not(:has(.session-item.active)):hover .session-action,
-.session-wrap:not(:has(.session-item.active)):hover .session-action.pin.on,
-.session-wrap:not(:has(.session-item.active)):hover .session-spin {
+.session-wrap:not(:has(.session-item.active)):hover .session-action.pin.on {
   color: var(--accent-fg);
+}
+/* 转圈只吃 --spin-color（原因见 .session-spin），所以单列一条，不并进上面的 color 组 */
+.session-wrap:not(:has(.session-item.active)):hover .session-spin {
+  --spin-color: var(--accent-fg);
 }
 /* 悬停色的底色必须跟着同一个条件铺上。右侧三个操作按钮是 .session-item 的兄弟节点，
    悬停按钮时 .session-item:hover 不成立、但 :hover 会冒到 .session-wrap 上；
@@ -585,20 +588,23 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-scroll.no-fade .session-item .m { transition: none; }
 /* 原先靠 border: dashed 画圈：WebKit 只给两三道长弧，Blink 是八段短弧，
    同一个转圈在 Safari / 本 App 与 Chrome PWA 里长得不一样。
-   改成自己画 8 段扇区、再把中心挖空，两个引擎都是 Chrome 里那种八段虚线环。 */
+   改成自己画 8 段扇区、再把中心挖空，两个引擎都是 Chrome 里那种八段虚线环。
+   颜色走 --spin-color 而不是渐变里的 currentColor：WebKit 判断「背景图里的
+   currentColor 有没有变」时一律认为没变（bug 324766，2026-10 才修），
+   换皮肤时转圈会卡在旧颜色上，得刷新才恢复。写具体色值就会正常重画。 */
 .session-spin {
+  --spin-color: var(--text-3);
   width: 11px;
   height: 11px;
   border-radius: 50%;
   flex: none;
-  color: var(--text-3);
-  background: repeating-conic-gradient(currentColor 0deg 25deg, transparent 25deg 45deg);
+  background: repeating-conic-gradient(var(--spin-color) 0deg 25deg, transparent 25deg 45deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
   animation: spin 2.4s linear infinite;
 }
 /* 选中行是反相底（浅色 #111 / 深色 #fff），转圈默认的 --text-3 对比不足，跟随选中前景色。 */
-.session-item.active .session-spin { color: var(--text-selected); }
+.session-item.active .session-spin { --spin-color: var(--text-selected); }
 .unread-dot,
 .error-dot {
   width: 7px;

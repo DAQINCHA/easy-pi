@@ -17,6 +17,7 @@ function parseRules() {
     if (!selectors || selectors.startsWith("@")) continue;
     const body = m[2];
     const color = (body.match(/(?:^|;)\s*color:\s*([^;]+)/m) || [])[1];
+    const spinColor = (body.match(/(?:^|;)\s*--spin-color:\s*([^;]+)/m) || [])[1];
     const background = (body.match(/(?:^|;)\s*background:\s*([^;]+)/m) || [])[1];
     const borderColor = (body.match(/(?:^|;)\s*border-color:\s*([^;]+)/m) || [])[1];
     for (const selector of selectors.split(",").map((s) => s.trim()).filter(Boolean)) {
@@ -24,6 +25,7 @@ function parseRules() {
         selector,
         index: m.index,
         color: color ? color.trim() : "",
+        spinColor: spinColor ? spinColor.trim() : "",
         background: background ? background.trim() : "",
         borderColor: borderColor ? borderColor.trim() : "",
       });
@@ -159,7 +161,7 @@ describe("sidebar session actions and list scrollbar", () => {
     const rules = parseRules();
     const selectedSpin = rules.filter((rule) => rule.selector === ".session-item.active .session-spin");
     assert.equal(selectedSpin.length, 1, "missing .session-item.active .session-spin rule");
-    assert.match(selectedSpin[0].color, /var\(--text-selected\)/);
+    assert.match(selectedSpin[0].spinColor, /var\(--text-selected\)/);
 
     const base = rules.find((rule) => rule.selector === ".session-spin");
     assert.ok(base, "missing .session-spin base rule");
@@ -173,7 +175,7 @@ describe("sidebar session actions and list scrollbar", () => {
     // 尺寸、速度、主题不变；虚线段改成自己画，WebKit 和 Blink 看起来一致。
     const baseBlock = CSS.match(/(?:^|\n)\.session-spin\s*\{([^}]*)\}/);
     assert.ok(baseBlock, "missing .session-spin base rule body");
-    assert.match(baseBlock[1], /color:\s*var\(--text-3\)/);
+    assert.match(baseBlock[1], /--spin-color:\s*var\(--text-3\)/);
     assert.match(baseBlock[1], /border-radius:\s*50%/);
     assert.match(baseBlock[1], /repeating-conic-gradient\(/);
     assert.match(baseBlock[1], /mask:\s*radial-gradient/);
