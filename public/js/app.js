@@ -2652,7 +2652,9 @@ function connectSessionEvents() {
   state.statusEs = source;
   source.addEventListener("status", (event) => {
     const data = parseJson(event.data || "{}") || {};
-    state.runtime = new Map(Object.entries(data.statuses || {}));
+    const statuses = new Map(Object.entries(data.statuses || {}));
+    noteFinishedInBackground(state.runtime, statuses);
+    state.runtime = statuses;
     renderSessions();
     scheduleSessionRefresh();
   });
@@ -3064,13 +3066,7 @@ async function toggleNotify() {
   toast("已开启完成通知");
 }
 
-async function maybeNotifyDone() {
-  if (!readNotifyPref()) return;
-  if (document.visibilityState === "visible" && document.hasFocus()) return;
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const title = "pi 已完成";
-  const body = (state.sessionName || sessionTitle()) + " · 本轮结束";
-  const tag = "pi-" + state.key;
+async function showDoneNotification(title, body, tag) {
   try {
     // 阶段 D 注册 SW 后优先走 SW。这里用 getRegistration 而不是 ready，
     // 避免尚未注册 SW 时永远等待；SW 版的 notificationclick / clients.matchAll
@@ -3091,6 +3087,47 @@ async function maybeNotifyDone() {
     };
   } catch {
     /* ignore */
+  }
+}
+
+async function maybeNotifyDone() {
+  if (!notifyEnabled()) return;
+  // 这一条是「你正看着的那个会话」结束，窗口既然在前台就不打扰。
+  if (isViewing()) return;
+  const body = (state.sessionName || sessionTitle()) + " · 本轮结束";
+  await showDoneNotification("pi 已完成", body, "pi-" + state.key);
+}
+
+function sessionLabelById(id) {
+  const hit = state.sessions.find((session) => session.id === id);
+  if (hit) return hit.name || hit.title || "";
+  const result = ((state.search && state.search.results) || []).find((item) => item.id === id);
+  return result ? result.name || result.title || "" : "";
+}
+
+function notifyBackgroundDone(id, errored) {
+  if (!notifyEnabled()) return;
+  const label = sessionLabelById(id) || "一个会话";
+  const title = errored ? "pi 出错停止" : "pi 已完成";
+  const body = label + (errored ? " · 出错停止" : " · 本轮结束");
+  void showDoneNotification(title, body, "pi-" + id);
+}
+
+/* 后台会话结束的提醒。
+ * /api/session-events 一直在广播每个会话的 running 状态（侧栏那个转圈就是它），
+ * 但之前只拿来画图标，结束提醒只挂在当前打开的会话的事件流上，
+ * 所以切到别的对话之后，后台完成就静悄悄。
+ * 这里对比前后两次状态快照：某个「不是当前打开的」会话从跑着变成停了，补一条通知。
+ * 当前那个会话由 agent_settled 那条路负责，这里跳过，免得一次结束弹两条；
+ * 也正因为目标不是你正看的对话，前台专注时照样提醒。 */
+function noteFinishedInBackground(before, after) {
+  if (!before || !before.size) return;
+  const currentId = state.key ? state.key.replace(/^s:/, "") : "";
+  for (const [id, item] of after) {
+    const previous = before.get(id);
+    if (!previous || !previous.running || item.running) continue;
+    if (id === currentId) continue;
+    notifyBackgroundDone(id, Boolean(item.errored));
   }
 }
 
