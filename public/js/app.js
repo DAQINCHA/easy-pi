@@ -5574,6 +5574,63 @@ function bindSessionListScrollbar() {
   scroller.addEventListener("scroll", onScroll, { passive: true });
 }
 
+/* 主对话区滚动槽常驻（保证文字不左右跳），但滑块平时透明，滚动时才淡入。
+   颜色由 --thread-scroll-thumb 变量驱动：WKWebView 不会因 .is-scrolling 选择器
+   切换去重绘 ::-webkit-scrollbar-thumb，只认变量值变化（侧栏用的就是这套）。 */
+function bindThreadScrollbar() {
+  const thread = el.thread;
+  if (!thread) return;
+  let timer = 0;
+  const show = () => {
+    // 内容没超出时滑块是全高的，滚也滚不动，就别点亮它
+    if (thread.scrollHeight - thread.clientHeight < 2) return;
+    thread.classList.add("is-scrolling");
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      thread.classList.remove("is-scrolling");
+      timer = 0;
+    }, SESSION_SCROLLBAR_HIDE_MS);
+  };
+  // scroll 一定会有，但滚轮/触控手势先点亮更跟手；某些引擎会把 scroll 合并或延后。
+  for (const name of ["scroll", "wheel", "touchmove"]) {
+    thread.addEventListener(name, show, { passive: true });
+  }
+}
+
+/* 选中会话行的右边缘要和「新对话」按钮对齐。
+   滚动条 / scrollbar-gutter 占多少宽度，不同引擎（尤其 WKWebView 各版本）不一样，
+   猜一个固定 10px 会时宽时窄；直接量两个元素的右边缘，差多少补多少右内边距。 */
+function syncSessionPad() {
+  const scroller = el.sessionList;
+  const anchor = el.newChat;
+  if (!scroller || !anchor || !scroller.style || !scroller.querySelector) return;
+  const item = scroller.querySelector(".session-item");
+  if (!item) return;
+  // 先清零再量，避免补偿值自己累加
+  scroller.style.setProperty("--session-pad", "0px", "important");
+  scroller.style.setProperty("--session-pad-neg", "0px", "important");
+  const a = item.getBoundingClientRect();
+  const b = anchor.getBoundingClientRect();
+  if (!a || !b || !Number.isFinite(a.right) || !Number.isFinite(b.right)) return;
+  // 正数 = 会话行比按钮宽（右侧多出来）；负数 = 比按钮窄（被滚动条多扣了）
+  const delta = Math.round(a.right - b.right);
+  scroller.style.setProperty("--session-pad", Math.max(0, delta) + "px", "important");
+  scroller.style.setProperty("--session-pad-neg", Math.max(0, -delta) + "px", "important");
+}
+
+let sessionAlignBound = false;
+function bindSessionAlign() {
+  if (sessionAlignBound) return;
+  sessionAlignBound = true;
+  syncSessionPad();
+  // 列表重绘、窗口缩放后重新量；只观察子节点，改 style 不会回环。
+  // 侧栏拖宽时会话行和「新对话」按钮同比例变化，差值不变，不用额外监听。
+  if (el.sessionList && window.MutationObserver) {
+    new MutationObserver(syncSessionPad).observe(el.sessionList, { childList: true, subtree: true });
+  }
+  window.addEventListener("resize", syncSessionPad);
+}
+
 async function boot() {
   bindEvents();
   registerServiceWorker();
@@ -5604,6 +5661,8 @@ async function boot() {
   updateNotifyBtn();
   watchNotifyPermission();
   bindSessionListScrollbar();
+  bindThreadScrollbar();
+  bindSessionAlign();
 
   let last = null;
   try {

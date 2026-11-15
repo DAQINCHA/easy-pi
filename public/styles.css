@@ -480,6 +480,15 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   transition: --session-scroll-thumb 200ms ease;
 }
 .session-scroll.is-scrolling { --session-scroll-thumb: var(--scroll-thumb); }
+/* 会话列表右边缘必须落在「新对话」按钮上。滚动条 / gutter 到底占不占 10px，
+   各引擎不一样，壳里那条硬编码补偿会猜错；改由 JS 实测，写进 --session-pad。
+   选择器刻意写长：压过壳注入的 .session-scroll 同优先级补丁。
+   --session-pad 补「列表偏宽」，--session-pad-neg 补「列表偏窄」（padding 不能为负，
+   右边被多扣时改用 margin-right 把容器放宽）；默认都是 0，不改原布局。 */
+.app .sidebar .session-scroll {
+  padding-right: var(--session-pad, 0px) !important;
+  margin-right: calc(-10px - var(--session-pad-neg, 0px)) !important;
+}
 @media (prefers-reduced-motion: reduce) {
   .session-scroll { transition: none; }
 }
@@ -865,23 +874,47 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 
 /* ----------------------------- thread ----------------------------- */
 
+/* WKWebView 不会因为 .is-scrolling 这种选择器切换去重绘 ::-webkit-scrollbar-thumb，
+   所以不能靠「换规则」显隐；和侧栏一样把颜色注册成可插值的自定义属性，
+   thumb 永远只引用这个变量，滚动时只改变量值（顺带拿到淡入淡出）。 */
+@property --thread-scroll-thumb {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
 .thread {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  /* 滚动槽常驻：内容多寡、过程卡折叠/展开都不改变内容盒宽度。
+     .thread-inner 是 margin: 0 auto 的居中定宽块，内容盒一变就会整体左右移。
+     scrollbar-gutter: stable 在 WKWebView 里不生效，直接让滚动条常驻最稳，
+     所有引擎下宽度都恒定，消息文字不会左右跳。 */
+  overflow-y: scroll;
   overflow-x: hidden;
-  /* 滚动条的位置永远预留：内容变多/折叠过程卡时，正文不会跟着左右跳。
-     .thread-inner 是居中的定宽块，少掉这 10px 就会整体位移。 */
-  scrollbar-gutter: stable;
   scroll-behavior: smooth;
   overscroll-behavior: contain;
+  --thread-scroll-thumb: transparent;
+  transition: --thread-scroll-thumb 200ms ease;
 }
-/* 老引擎没有 gutter 属性时退一步：让滚动条常驻，宽度同样恒定；
-   静止时把滑块藏掉，免得短对话右边挂一根没用的长条。 */
-@supports not (scrollbar-gutter: stable) {
-  .thread { overflow-y: scroll; }
-  .thread::-webkit-scrollbar-thumb { background: transparent; }
-  .thread:hover::-webkit-scrollbar-thumb { background: var(--scroll-thumb); }
+@media (prefers-reduced-motion: reduce) {
+  .thread { transition: none; }
+}
+.thread.is-scrolling { --thread-scroll-thumb: var(--scroll-thumb); }
+/* 10px 槽里用 3px 透明边框只画中间 4px，是细直角滑块而不是又宽又长的粗条；
+   内容不足时滑块全高，但静止时变量是 transparent，看不见。 */
+.thread::-webkit-scrollbar { width: 10px; height: 10px; }
+.thread::-webkit-scrollbar-track { background: transparent; }
+.thread::-webkit-scrollbar-thumb {
+  background: var(--thread-scroll-thumb);
+  border: 3px solid transparent;
+  border-radius: var(--radius);
+  background-clip: content-box;
+}
+.thread.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+  border: 3px solid transparent;
+  border-radius: var(--radius);
+  background-clip: content-box;
 }
 .thread-inner {
   max-width: var(--thread-max);
