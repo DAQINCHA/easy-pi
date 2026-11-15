@@ -2478,7 +2478,24 @@ body.resizing .sidebar { transition: none; }
 }
 
 /* ------------------------ 皮肤：单色反差 ------------------------
- * 只补工作区按钮的悬停反馈：反相成柠黄 + 硬阴影抬起，符合硬边语言。 */
+ * 形状：0 圆角 + 1px 细线，硬投影收窄一档。
+ * 基础值原本是 2px 边、4px 起跳的硬影，比其它皮肤重一头，读起来线比颜色抢眼；
+ * 这里把粗细对齐到赭红纸本那一档，颜色一个不动。
+ * 硬偏移按一半收：4px→2px、6px→3px、8px→4px，3px 取整到 2px（再小就看不见了）。 */
+html[data-skin="classic"] {
+  --border-width: 1px;
+  --shadow-soft: 2px 2px 0 var(--shadow-color);
+  --shadow-pop: 2px 2px 0 var(--shadow-color);
+  --shadow-composer: 2px 2px 0 var(--shadow-color);
+  --shadow-accent: 2px 2px 0 var(--shadow-color);
+  --shadow-raised: 2px 2px 0 var(--shadow-color);
+  --shadow-card: 2px 2px 0 var(--shadow-color);
+  --shadow-accent-strong: 3px 3px 0 var(--shadow-color);
+  --shadow-modal: 3px 3px 0 var(--shadow-color);
+  --shadow-drawer: 4px 0 0 var(--shadow-color);
+}
+
+/* 只补工作区按钮的悬停反馈：反相成柠黄 + 硬阴影抬起，符合硬边语言。 */
 html[data-skin="classic"] .workspace {
   transition:
     background .16s var(--ease),
@@ -2490,7 +2507,7 @@ html[data-skin="classic"] .workspace:hover {
   background: var(--accent);
   color: var(--accent-fg);
   border-color: var(--ink);
-  box-shadow: 5px 5px 0 var(--shadow-color);
+  box-shadow: 3px 3px 0 var(--shadow-color);
   transform: translate(-2px, -2px);
 }
 html[data-skin="classic"] .workspace:hover .ws-name,
@@ -2500,7 +2517,7 @@ html[data-skin="classic"] .workspace:hover .ws-caret {
 }
 html[data-skin="classic"] .workspace:active {
   transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--shadow-color);
+  box-shadow: 1px 1px 0 var(--shadow-color);
 }
 
 /* ------------------------ 皮肤：赭红纸本 ------------------------
