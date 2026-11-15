@@ -10,28 +10,6 @@ import { jsonResponse, loadApp } from "./helpers/frontend.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CSS = readFileSync(join(ROOT, "public/styles.css"), "utf8");
 
-function rule(selector) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = CSS.match(new RegExp(escaped + "\\s*\\{[^}]*\\}"));
-  assert.ok(match, "missing selector " + selector);
-  return match[0];
-}
-
-describe("message avatar matches the collapsed process header height", () => {
-  it("is a 32x32 border-box square that does not stretch the image", () => {
-    const avatar = rule(".msg .avatar");
-    assert.match(avatar, /width:\s*32px/);
-    assert.match(avatar, /height:\s*32px/);
-    assert.match(rule(".msg .avatar img"), /object-fit:\s*contain/);
-    assert.match(rule(".proc-head"), /min-height:\s*32px/);
-  });
-
-  it("keeps the avatar centered on the first process/tool row", () => {
-    assert.match(rule(".msg.assistant.lead-proc .avatar"), /margin-top:\s*8px/);
-    assert.match(rule(".msg.assistant.lead-tool .avatar"), /margin-top:\s*12px/);
-  });
-});
-
 describe("skill invocation display", () => {
   const baseDir = "/skills/pdf-tools";
   const body = "# PDF tools\nRead the file.";

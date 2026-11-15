@@ -16,8 +16,8 @@
 
 1. **左下角「工作区」按钮**：基础规则里 `.workspace:hover` 只把底色换回 `--paper`、边框换回 `--ink`，等于零变化。每套皮肤都要自己写一条 `.workspace:hover`，并一起覆盖 `.ws-name` / `.ws-icon` / `.ws-caret` 的颜色。
 2. **「N 个文件已更改」卡片**：`.turn-list` 有 6px 上下内边距，悬停底色会上下留边、填不满卡片。每套皮肤都要写 `.turn-list { padding: 0 }` + `.turn-file { padding: 10px 16px }`。
-3. **三处图标圆角必须同一档**：`.brand-mark`（左上角品牌）、`.msg .avatar`（对话头像）、`.empty-mark`（空对话大图标）。基础值都是 `var(--radius)`；单独改就三处一起改。小尺寸（26px / 32px）的圆角不能超过边长一半，否则会被浏览器压成圆形，和大图标对不上。
-4. **π 图标被压黑**：`.brand-mark img`、`.empty-mark img`、`.msg .avatar img` 上都有 `filter: brightness(0)`。`--brand-tile` 一旦用深色（浅色皮肤的深青、深色皮肤的深蓝），黑 π 就看不见，要补 `filter: none`（参考 `aurora` 深色那三条）。
+3. **两处图标圆角必须同一档**：`.brand-mark`（左上角品牌）、`.empty-mark`（空对话大图标）。基础值都是 `var(--radius)`；单独改就两处一起改。小尺寸（26px）的圆角不能超过边长一半，否则会被浏览器压成圆形，和大图标对不上。
+4. **π 图标被压黑**：`.brand-mark img`、`.empty-mark img` 上都有 `filter: brightness(0)`。`--brand-tile` 一旦用深色（浅色皮肤的深青、深色皮肤的深蓝），黑 π 就看不见，要补 `filter: none`（参考 `aurora` 深色那两条）。
 5. **悬浮侧栏要补拖动热区**：给 `.app` 加外边距让侧栏「浮起来」之后，`.sidebar-resizer` 还是按原来的轨道位置算，热区会和侧栏边缘差一个边距。
 6. **扁平皮肤不要外投影**：靠细线、留白、底色区分层级；别留 `box-shadow` 的柔影。
 7. **发送键跟随主题色**，并且 `[disabled]` 与 `.is-stop`（停止中）两个状态要单独覆盖，否则会被皮肤规则盖掉。

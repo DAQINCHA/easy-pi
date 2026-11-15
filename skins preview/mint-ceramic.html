@@ -216,16 +216,6 @@ a { color: inherit; text-decoration: none; }
 .msg { display: flex; gap: 12px; min-width: 0; width: 100%; }
 .msg.user { flex-direction: column; align-items: flex-end; }
 .msg.assistant { align-items: flex-start; }
-.msg .avatar {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 16px;
-}
 .msg .body { flex: 1; min-width: 0; }
 .bubble {
   max-width: min(560px, 100%);
@@ -387,7 +377,6 @@ a { color: inherit; text-decoration: none; }
 }
 @media (max-width: 520px) {
   body { font-size: 16px; }
-  .msg .avatar { display: none; }
   .bubble { max-width: 100%; }
   .composer-hint { flex-direction: column; }
   .title-text { font-size: 15px; }
@@ -479,12 +468,6 @@ body {
   box-shadow:
     inset 0 1px 1px #fff,
     0 6px 14px rgba(70, 100, 90, 0.1);
-}
-.avatar {
-  background: #d9ebe3;
-  color: #21564a;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 1px #fff, 0 2px 6px rgba(50,90,80,0.12);
 }
 .action { color: #2b4a40; }
 .proc, .tool, .result-card, .turn-card {
@@ -660,7 +643,6 @@ body {
           </div>
 
           <div class="msg assistant" data-turn="0">
-            <div class="avatar" aria-hidden="true">π</div>
             <div class="body">
               <div class="markdown"><p>可以先按「路上要用的」和「住一晚要用的」分开想。确认行程之后，我再帮你整理成一份完整清单。</p></div>
               <div class="msg-foot">
@@ -681,7 +663,6 @@ body {
           </div>
 
           <div class="msg assistant" data-turn="1">
-            <div class="avatar" aria-hidden="true">π</div>
             <div class="body">
               <details class="proc open">
                 <summary class="proc-head">

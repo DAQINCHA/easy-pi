@@ -1714,13 +1714,6 @@ function userNode(message, index, ctx = {}) {
   return node;
 }
 
-// 首个可见段是过程组时，头像要跟着下移对齐组首行（见 styles.css 的 lead-* 规则）。
-function leadAlignClass(segments) {
-  const first = (segments || [])[0];
-  if (!first) return "";
-  return first.type === "proc" ? "lead-proc" : "";
-}
-
 function lastUserAndAssistant() {
   let lastUser = null;
   let lastAssistant = null;
@@ -1800,13 +1793,11 @@ function turnNodes(turn, ctx) {
     const node = document.createElement("div");
     node.className = "msg assistant" + (ctx.refresh ? " refresh" : "");
     node.setAttribute("data-turn", String(turn.index));
-    let html = '<div class="avatar"><img src="icons/mark.svg" alt=""></div><div class="body">';
+    // 助手消息不再画 π 头像：正文直接占满整行，折叠/展开过程卡时也不会多一条 32px 的空槽。
+    let html = '<div class="body">';
     if (chunk.other) {
-      node.classList.add("lead-tool");
       html += otherHtml(chunk.other);
     } else {
-      const align = leadAlignClass(chunk.segments);
-      if (align) node.classList.add(align);
       html += segmentsHtml(chunk.segments, {
         caret: ctx.streaming && position === chunks.length - 1,
         activeProc: position === chunks.length - 1 ? activeProc : null,

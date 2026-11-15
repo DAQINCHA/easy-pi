@@ -864,8 +864,18 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 滚动条的位置永远预留：内容变多/折叠过程卡时，正文不会跟着左右跳。
+     .thread-inner 是居中的定宽块，少掉这 10px 就会整体位移。 */
+  scrollbar-gutter: stable;
   scroll-behavior: smooth;
   overscroll-behavior: contain;
+}
+/* 老引擎没有 gutter 属性时退一步：让滚动条常驻，宽度同样恒定；
+   静止时把滑块藏掉，免得短对话右边挂一根没用的长条。 */
+@supports not (scrollbar-gutter: stable) {
+  .thread { overflow-y: scroll; }
+  .thread::-webkit-scrollbar-thumb { background: transparent; }
+  .thread:hover::-webkit-scrollbar-thumb { background: var(--scroll-thumb); }
 }
 .thread-inner {
   max-width: var(--thread-max);
@@ -963,21 +973,6 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .msg.refresh { animation: none; }
 .msg.user { flex-direction: column; align-items: flex-end; padding: 12px 0 8px; }
 
-.msg .avatar {
-  flex: none;
-  width: 32px; height: 32px;
-  margin-top: 1px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--brand-tile);
-  border: 1px solid var(--border);
-  padding: 0;
-  display: grid; place-items: center;
-}
-.msg .avatar img { width: 100%; height: 100%; display: block; object-fit: contain; filter: brightness(0); }
-/* 首个内容是过程组/工具卡时，头像跟着下移：组头首行中心 = 上边距 8 + 头高 32/2 = 24，头像 32 高、中心在 margin-top + 16。 */
-.msg.assistant.lead-tool .avatar { margin-top: 12px; }
-.msg.assistant.lead-proc .avatar { margin-top: 8px; }
 .msg .body { flex: 1; min-width: 0; }
 
 .bubble {
@@ -2364,7 +2359,6 @@ body.resizing .sidebar { transition: none; }
 
 @media (max-width: 520px) {
   .topbar { padding-left: 8px; }
-  .msg .avatar { display: none; }
   .working { padding-left: 0; }
   .turn-status { padding-left: 0; }
   .composer-hint { display: none; }
@@ -2636,10 +2630,9 @@ html[data-skin="sea-salt"] {
   --border-width: 1px;
 }
 
-/* 标识、头像、空状态大图标统一同一档圆角；小尺寸按比例收小，
-   否则 16px 圆角会把 26/32px 的小方块压成纯圆 */
+/* 标识、空状态大图标统一同一档圆角；小尺寸按比例收小，
+   否则 16px 圆角会把 26px 的小方块压成纯圆 */
 html[data-skin="sea-salt"] .brand-mark,
-html[data-skin="sea-salt"] .msg .avatar,
 html[data-skin="sea-salt"] .empty-mark {
   border-radius: calc(var(--radius) / 2);
 }
@@ -3135,9 +3128,8 @@ html[data-skin="mint"] .composer.dragover {
     0 10px 22px var(--clay-drop);
 }
 
-/* ---- 标识与头像：圆形瓷片 ---- */
+/* ---- 标识与空状态大图标：圆形瓷片 ---- */
 html[data-skin="mint"] .brand-mark,
-html[data-skin="mint"] .msg .avatar,
 html[data-skin="mint"] .empty-mark {
   background: var(--clay-tile);
   border: 0;
@@ -3520,9 +3512,8 @@ html[data-skin="aurora"] .topbar {
   background: transparent;
   border-bottom-color: var(--border-soft);
 }
-/* 标识、头像、大图标：统一同一档圆角，不再时而圆形时而圆角矩形 */
+/* 标识、大图标：统一同一档圆角，不再时而圆形时而圆角矩形 */
 html[data-skin="aurora"] .brand-mark,
-html[data-skin="aurora"] .msg .avatar,
 html[data-skin="aurora"] .empty-mark {
   border-radius: 10px;
   background: var(--aurora-tile);
@@ -3530,8 +3521,7 @@ html[data-skin="aurora"] .empty-mark {
 }
 /* 深色下底座是深色玻璃，π 不能再压成黑色；浅色仍用默认的黑色 */
 html[data-skin="aurora"][data-theme="dark"] .brand-mark img,
-html[data-skin="aurora"][data-theme="dark"] .empty-mark img,
-html[data-skin="aurora"][data-theme="dark"] .msg .avatar img {
+html[data-skin="aurora"][data-theme="dark"] .empty-mark img {
   filter: none;
 }
 

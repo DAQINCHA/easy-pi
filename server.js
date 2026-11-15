@@ -195,9 +195,13 @@ function piVersionString() {
     piVersion = execFileSync(process.env.PI_BIN || "pi", ["--version"], {
       encoding: "utf8",
       timeout: 8000,
+      // 图形界面启动的 app 拿不到终端里的 PATH，裸跑 "pi" 会 ENOENT，
+      // 侧栏就一直显示 unknown；和 PiBridge 一样补上常见安装位置。
+      env: buildEnv(),
     }).trim();
   } catch {
-    piVersion = "unknown";
+    // 不缓存失败：后来装上 pi / 修好 PATH 时，下一次请求就能拿到真实版本。
+    return "unknown";
   }
   return piVersion;
 }
