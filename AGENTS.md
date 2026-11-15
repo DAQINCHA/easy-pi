@@ -4,7 +4,7 @@
 
 ## 皮肤是怎么工作的
 
-- 皮肤 = 一套 CSS 变量。`html[data-skin="<id>"]` 定义形状（`--radius`、`--radius-lg`、`--border-width`），`html[data-skin="<id>"][data-theme="light|dark"]` 定义颜色。
+- 皮肤 = 一套 CSS 变量。`html[data-skin="<id>"]` 定义形状（`--radius`、`--radius-lg`、`--border-width`、`--brand-radius`），`html[data-skin="<id>"][data-theme="light|dark"]` 定义颜色。
 - 每个 `data-skin` 块**必须浅色、深色两套都给**；只给一套会掉回基础配色，看起来像「皮肤只改了一半」。
 - 皮肤 id 与菜单名登记在 `public/js/app.js` 的 `SKINS`；改 id 要在 `SKIN_ALIASES` 里加迁移，否则已选过的人会被重置。
 - 几个容易误解的变量：`--ink` 是描边色（基础规则里 `border: var(--border-width) solid var(--ink)` 有 30 多处），`--paper` 是输入框 / 排队区的底色，`--bg-hover` 是「悬停底色」，`--accent-fg` 是「压在 `--accent` 和 `--bg-hover` 上的前景色」。
@@ -16,7 +16,7 @@
 
 1. **左下角「工作区」按钮**：基础规则里 `.workspace:hover` 只把底色换回 `--paper`、边框换回 `--ink`，等于零变化。每套皮肤都要自己写一条 `.workspace:hover`，并一起覆盖 `.ws-name` / `.ws-icon` / `.ws-caret` 的颜色。
 2. **「N 个文件已更改」卡片**：`.turn-list` 有 6px 上下内边距，悬停底色会上下留边、填不满卡片。每套皮肤都要写 `.turn-list { padding: 0 }` + `.turn-file { padding: 10px 16px }`。
-3. **两处图标圆角必须同一档**：`.brand-mark`（左上角品牌）、`.empty-mark`（空对话大图标）。基础值都是 `var(--radius)`；单独改就两处一起改。小尺寸（26px）的圆角不能超过边长一半，否则会被浏览器压成圆形，和大图标对不上。
+3. **两处图标圆角只设 `--brand-radius`，而且给比例不给像素**：`.brand-mark`（左上角品牌，26px）、`.empty-mark`（空对话大图标，56px）共用这一个变量。两处尺寸差一倍，写同一个像素值必然「小的看着圆、大的看着方」（8px 在 26px 上快成圆，在 56px 上只是个小角）。默认 `0`；要圆就写 `14.3%` / `38.5%` / `50%` 这种比例。`0` 和 `50%` 两个端点不受尺寸影响，其余都要按比例给。**别在皮肤里另写 `.brand-mark` 的 `border-radius`**，那会让两处再次脱钩。
 4. **π 图标被压黑**：`.brand-mark img`、`.empty-mark img` 上都有 `filter: brightness(0)`。`--brand-tile` 一旦用深色（浅色皮肤的深青、深色皮肤的深蓝），黑 π 就看不见，要补 `filter: none`（参考 `aurora` 深色那两条）。
 5. **悬浮侧栏要补拖动热区**：给 `.app` 加外边距让侧栏「浮起来」之后，`.sidebar-resizer` 还是按原来的轨道位置算，热区会和侧栏边缘差一个边距。
 6. **扁平皮肤不要外投影**：靠细线、留白、底色区分层级；别留 `box-shadow` 的柔影。

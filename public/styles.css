@@ -15,6 +15,10 @@
   --radius: 0;
   --radius-lg: 0;
   --border-width: 2px;
+  /* 品牌图标（侧栏 26px / 空状态 56px）的圆角。必须给比例：
+     两处尺寸差一倍，写像素必然「小的看着圆、大的看着方」。
+     各皮肤在自己的形状块里覆盖，别在皮肤里另写 .brand-mark 的圆角。 */
+  --brand-radius: 0;
 }
 
 /*
@@ -312,7 +316,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .brand-mark {
   flex: none;
   width: 26px; height: 26px;
-  border-radius: var(--radius);
+  border-radius: var(--brand-radius);
   overflow: hidden;
   background: var(--brand-tile);
   border: var(--border-width) solid var(--ink);
@@ -974,7 +978,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .empty-mark {
   width: 56px; height: 56px;
   display: grid; place-items: center;
-  border-radius: var(--radius);
+  border-radius: var(--brand-radius);
   overflow: hidden;
   background: var(--brand-tile);
   border: var(--border-width) solid var(--ink);
@@ -2490,6 +2494,8 @@ body.resizing .sidebar { transition: none; }
  * 硬偏移按一半收：4px→2px、6px→3px、8px→4px，3px 取整到 2px（再小就看不见了）。 */
 html[data-skin="classic"] {
   --border-width: 1px;
+  /* 直角皮肤：图标也不圆 */
+  --brand-radius: 0;
   --shadow-soft: 2px 2px 0 var(--shadow-color);
   --shadow-pop: 2px 2px 0 var(--shadow-color);
   --shadow-composer: 2px 2px 0 var(--shadow-color);
@@ -2534,6 +2540,8 @@ html[data-skin="paper"] {
   --radius: 2px;
   --radius-lg: 4px;
   --border-width: 1px;
+  /* ≈ 56px 上的 2px（小图标 0.9px），和纸本的细线同一档 */
+  --brand-radius: 3.6%;
 }
 
 /* 工作区按钮：沿用本皮肤的「赭红底 + 纸色字」悬停语义 */
@@ -2696,16 +2704,10 @@ html[data-skin="sea-salt"] {
   --radius: 16px;
   --radius-lg: 28px;
   --border-width: 1px;
+  /* 跟着 56px 大图标那档走：14.3% ≈ 大图标 8px、小图标 3.7px */
+  --brand-radius: 14.3%;
 }
 
-/* 标识、空状态大图标统一同一档弧度。
-   两处尺寸差一倍（26px / 56px），写同一个圆角像素值时观感完全不同：
-   8px 落在 26px 上快成圆了，落在 56px 上只是个小圆角。
-   所以按边长取比例——小图标从此是大图标的等比缩小版（14.3% ≈ 56px 上的 8px）。 */
-html[data-skin="sea-salt"] .brand-mark,
-html[data-skin="sea-salt"] .empty-mark {
-  border-radius: 14.3%;
-}
 html[data-skin="sea-salt"] .sidebar,
 html[data-skin="sea-salt"] .thread-inner,
 html[data-skin="sea-salt"] .composer {
@@ -2946,6 +2948,8 @@ html[data-skin="mint"] {
   --radius: 16px;
   --radius-lg: 28px;
   --border-width: 0px;
+  /* 圆形瓷片 */
+  --brand-radius: 50%;
 }
 
 html[data-skin="mint"][data-theme="light"] {
@@ -3198,12 +3202,11 @@ html[data-skin="mint"] .composer.dragover {
     0 10px 22px var(--clay-drop);
 }
 
-/* ---- 标识与空状态大图标：圆形瓷片 ---- */
+/* ---- 标识与空状态大图标：圆形瓷片（圆角由 --brand-radius 给） ---- */
 html[data-skin="mint"] .brand-mark,
 html[data-skin="mint"] .empty-mark {
   background: var(--clay-tile);
   border: 0;
-  border-radius: 50%;
   box-shadow: inset 0 1px 1px var(--clay-hi), 0 2px 6px var(--clay-drop);
 }
 
@@ -3558,6 +3561,8 @@ html[data-skin="aurora"] {
   --radius: 12px;
   --radius-lg: 18px;
   --border-width: 1px;
+  /* 跟着 26px 小图标那 10px 走：38.5% ≈ 小图标 10px、大图标 21.6px */
+  --brand-radius: 38.5%;
 }
 
 /* 结构：侧栏贴住窗口边，不再悬浮；对话区直接坐在极光底上 */
@@ -3582,11 +3587,9 @@ html[data-skin="aurora"] .topbar {
   background: transparent;
   border-bottom-color: var(--border-soft);
 }
-/* 标识、大图标：弧度以侧栏那个 26px 小图标的 10px 为准（≈38.5%），
-   大图标跟着同一个比例走。原先两边都硬写 10px，小的看着圆、大的看着方。 */
+/* 标识、大图标只换底色和描边；圆角统一走 --brand-radius（见 :root） */
 html[data-skin="aurora"] .brand-mark,
 html[data-skin="aurora"] .empty-mark {
-  border-radius: 38.5%;
   background: var(--aurora-tile);
   border-color: var(--aurora-line-strong);
 }
@@ -4007,6 +4010,8 @@ html[data-skin="cyber"] {
   --radius: 0;
   --radius-lg: 0;
   --border-width: 1px;
+  /* 直角皮肤：图标也不圆 */
+  --brand-radius: 0;
 
   /* CRT 扫描线：1px 暗线 + 2px 间隙，周期 3px；透明度压低，只留一层薄纹 */
   --crt-lines: repeating-linear-gradient(180deg, #0000002b 0 1px, transparent 1px 3px);
