@@ -257,15 +257,34 @@ function parseJson(text) {
   }
 }
 
+// pi 收下图片时会往用户消息里补一条它自己生成的文本块，比如
+// 「[Image: original 2028x1862, displayed at 2000x1836. Multiply coordinates by 1.01 …]」，
+// 以及 HEIC 之类转格式时的「[Image converted from image/heic to image/png.]」。
+// 那是给模型换算坐标、知道图片被改过的元数据，不是用户说的话，
+// 气泡、搜索结果、重新编辑时的输入框都不该出现，所以在这里统一剔掉。
+const IMAGE_NOTE_LINES = [
+  /^\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\]$/,
+  /^\[Image converted from [\w/+.-]+ to [\w/+.-]+\.\]$/,
+];
+
+function stripImageNotes(text) {
+  if (!text || text.indexOf("[Image") === -1) return text;
+  const lines = text.split("\n");
+  const kept = lines.filter((line) => !IMAGE_NOTE_LINES.some((re) => re.test(line.trim())));
+  return kept.length === lines.length ? text : kept.join("\n").trim();
+}
+
 function textOf(message) {
   if (!message) return "";
   const content = message.content;
-  if (typeof content === "string") return content;
+  if (typeof content === "string") return stripImageNotes(content);
   if (Array.isArray(content)) {
-    return content
-      .filter((block) => block && block.type === "text")
-      .map((block) => block.text || "")
-      .join("\n");
+    return stripImageNotes(
+      content
+        .filter((block) => block && block.type === "text")
+        .map((block) => block.text || "")
+        .join("\n"),
+    );
   }
   return "";
 }
@@ -282,10 +301,10 @@ function visiblePromptText(value) {
   if (skill) {
     const userMessage = skill.userMessage || "";
     const attachment = parseAttachmentBlock(userMessage);
-    return attachment ? attachment.text : userMessage;
+    return stripImageNotes(attachment ? attachment.text : userMessage);
   }
   const attachment = parseAttachmentBlock(raw);
-  return attachment ? attachment.text : raw;
+  return stripImageNotes(attachment ? attachment.text : raw);
 }
 
 // 默认复制只取当前可见内容：不读隐藏的 Skill 正文、绝对路径和「展开 / 收起」按钮文案。
