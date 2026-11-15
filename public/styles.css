@@ -377,6 +377,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
   /* 左右不留外边距：宽度和「新对话」按钮对齐 */
   margin: 10px 0 4px;
   padding: 0 9px;
@@ -391,10 +392,28 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .search svg { width: 15px; height: 15px; color: var(--text-4); flex: none; }
 .search input {
   flex: 1; min-width: 0;
+  padding-right: 34px;
   background: none; border: 0; outline: none;
   font-size: 13px; color: var(--text-1);
 }
 .search input::placeholder { color: var(--text-4); }
+/* 快捷键提示和「新对话」一样：平常藏起来，鼠标悬停才出现。
+   输入框右侧留白，提示不会盖住已经输入的字。 */
+.search kbd {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-4);
+  background: transparent;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s var(--ease);
+}
+.search:hover kbd { opacity: 1; }
 
 .search-error { color: var(--red); }
 .search-meta {

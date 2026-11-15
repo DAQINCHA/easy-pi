@@ -3047,7 +3047,7 @@ async function toggleNotify() {
     }
   }
   if (permission !== "granted") {
-    toast("通知权限被拒绝，请到浏览器设置里允许", "error");
+    toast("通知权限被拒绝，请到浏览器或系统设置里允许", "error");
     return;
   }
   writeNotifyPref(true);
@@ -5085,6 +5085,13 @@ function toggleSidebar() {
   requestAnimationFrame(updateRailVisibility);
 }
 
+// ⌘F 直接进搜索框。侧栏收起时先展开，否则输入框是 inert 的，focus() 无效。
+function focusSessionSearch() {
+  if (!sidebarVisible()) toggleSidebar();
+  el.search.focus();
+  el.search.select();
+}
+
 function initSidebarResizer() {
   try {
     const saved = Number(localStorage.getItem("piwebui.sidebarWidth") || 0);
@@ -5513,6 +5520,11 @@ function bindEvents() {
     if (meta && event.key.toLowerCase() === "b") {
       event.preventDefault();
       toggleSidebar();
+      return;
+    }
+    if (meta && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      focusSessionSearch();
       return;
     }
     if (event.key === "Escape") {
