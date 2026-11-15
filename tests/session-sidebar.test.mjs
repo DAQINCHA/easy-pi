@@ -140,12 +140,18 @@ describe("sidebar session actions and list scrollbar", () => {
     assert.doesNotMatch(base[1], /border-color\s*:/);
   });
 
-  it("makes active-session actions visible at rest and still hides running-session actions", () => {
+  it("keeps the selected row's actions hidden until hover, but readable on the selected background", () => {
     const action = parseRules().filter((r) =>
       r.selector === ".session-wrap:has(.session-item.active):not(.running) .session-action",
     );
     assert.ok(action.length);
     assert.match(action[0].color, /var\(--text-selected\)/);
+    // 选中行不再常显图标：只留颜色，不能留 opacity: 1
+    const activeRule = CSS.match(
+      /\.session-wrap:has\(\.session-item\.active\):not\(\.running\) \.session-action\s*\{([^}]*)\}/,
+    );
+    assert.ok(activeRule, "missing selected-row action rule");
+    assert.doesNotMatch(activeRule[1], /opacity/);
     assert.match(CSS, /\.session-wrap\.running \.session-action\s*\{[^}]*opacity:\s*0/);
   });
 

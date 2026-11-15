@@ -626,17 +626,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap.archived .session-item:hover,
 .session-wrap.archived .session-item.active { opacity: 1; }
 
-/* 已激活且非运行中：右侧操作图标默认可见，用反相前景，不必先悬停。 */
+/* 已激活且非运行中：操作图标和别的行一样只在悬停时出现，
+   但前景色要用反相色，压在选中底上才看得清。 */
 .session-wrap:has(.session-item.active):not(.running) .session-action {
-  opacity: 1;
   color: var(--text-selected);
 }
 .session-wrap:has(.session-item.active):not(.running) .session-action.pin.on {
   color: var(--text-selected);
 }
-.session-wrap:has(.session-item.active):not(.running) .session-item { padding-right: 76px; }
-.session-wrap:has(.session-item.active):not(.running) .session-item .m { display: none; }
-.session-wrap.archived:has(.session-item.active):not(.running) .session-item { padding-right: 28px; }
 /* 键盘聚焦时同样露出图标并给标题腾位，不改变未激活行默认隐藏策略。 */
 .session-wrap:focus-within:not(.running) .session-action { opacity: 1; }
 .session-wrap:focus-within:not(.running) .session-item { padding-right: 76px; }
