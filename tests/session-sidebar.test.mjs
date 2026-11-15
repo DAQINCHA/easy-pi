@@ -159,7 +159,7 @@ describe("sidebar session actions and list scrollbar", () => {
     const rules = parseRules();
     const selectedSpin = rules.filter((rule) => rule.selector === ".session-item.active .session-spin");
     assert.equal(selectedSpin.length, 1, "missing .session-item.active .session-spin rule");
-    assert.match(selectedSpin[0].borderColor, /var\(--text-selected\)/);
+    assert.match(selectedSpin[0].color, /var\(--text-selected\)/);
 
     const base = rules.find((rule) => rule.selector === ".session-spin");
     assert.ok(base, "missing .session-spin base rule");
@@ -168,11 +168,15 @@ describe("sidebar session actions and list scrollbar", () => {
         { spec: specificity(selectedSpin[0].selector), index: selectedSpin[0].index },
         { spec: specificity(base.selector), index: base.index },
       ) > 0,
-      "selected spinner border must win over the base --text-3 border",
+      "selected spinner color must win over the base --text-3 color",
     );
-    // 尺寸、速度、主题不变：基础转圈仍是同一虚线边框与同一动画。
+    // 尺寸、速度、主题不变；虚线段改成自己画，WebKit 和 Blink 看起来一致。
     const baseBlock = CSS.match(/(?:^|\n)\.session-spin\s*\{([^}]*)\}/);
-    assert.match(baseBlock[1], /border:\s*1\.5px dashed var\(--text-3\)/);
+    assert.ok(baseBlock, "missing .session-spin base rule body");
+    assert.match(baseBlock[1], /color:\s*var\(--text-3\)/);
+    assert.match(baseBlock[1], /border-radius:\s*50%/);
+    assert.match(baseBlock[1], /repeating-conic-gradient\(/);
+    assert.match(baseBlock[1], /mask:\s*radial-gradient/);
     assert.match(baseBlock[1], /animation:\s*spin 2\.4s linear infinite/);
 
     // 选中行悬停/聚焦不改底色，仍是反相底，所以 --text-selected 依然是对的前景色。

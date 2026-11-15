@@ -50,9 +50,9 @@ node --test tests/session-sidebar.test.mjs   # 会话行悬停与图标颜色的
 
 再确认 `public/styles.css` 的大括号成对（`{` 和 `}` 数量相等）。视觉最终得人眼看，不要用无头浏览器。
 
-## 已知的既有红灯（不是自己改坏的）
+## 曾经的两组红灯（已处理）
 
-- `tests/skill-invoke.test.mjs` / `tests/attachment-compact.test.mjs`：极光玻璃浅色的悬停对 `#f5fdff` 压 `#0d7a86` 只有 5.05，测试要求 7。
-- `tests/brand-mark.test.mjs` 两条：极光玻璃深色那句 `filter: none` 打破了「最后一条 `.brand-mark img` 规则必须是 `brightness(0)`」的断言。
+- 极光玻璃浅色的悬停对比度：`--bg-hover` 从 `#0d7a86` 调深到 `#085a64`，和 `--accent-fg: #f5fdff` 的对比度到 7.67，满足 AAA。改悬停底色会影响所有 hover 场景，换皮肤配色后要人眼再看一眼。
+- `tests/brand-mark.test.mjs` 两条：极光玻璃深色那句 `filter: none` 是刻意例外（深色底上黑 π 看不见）。测试改成只检查**不带皮肤前缀的全局规则**，并显式核「只允许这一条例外」。
 
-动这两块之前先跟作者确认；不要为了让测试变绿就删断言。
+改测试判定口径前仍要先跟作者确认；不要为了让测试变绿就删断言。

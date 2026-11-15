@@ -574,16 +574,22 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 /* 列表刚重建时先不播过渡，否则新节点要等下一帧才匹配 :hover，图标会淡入闪一下 */
 .session-scroll.no-fade .session-action,
 .session-scroll.no-fade .session-item .m { transition: none; }
+/* 原先靠 border: dashed 画圈：WebKit 只给两三道长弧，Blink 是八段短弧，
+   同一个转圈在 Safari / 本 App 与 Chrome PWA 里长得不一样。
+   改成自己画 8 段扇区、再把中心挖空，两个引擎都是 Chrome 里那种八段虚线环。 */
 .session-spin {
   width: 11px;
   height: 11px;
-  border: 1.5px dashed var(--text-3);
-  border-radius: var(--radius);
+  border-radius: 50%;
   flex: none;
+  color: var(--text-3);
+  background: repeating-conic-gradient(currentColor 0deg 25deg, transparent 25deg 45deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
   animation: spin 2.4s linear infinite;
 }
 /* 选中行是反相底（浅色 #111 / 深色 #fff），转圈默认的 --text-3 对比不足，跟随选中前景色。 */
-.session-item.active .session-spin { border-color: var(--text-selected); }
+.session-item.active .session-spin { color: var(--text-selected); }
 .unread-dot,
 .error-dot {
   width: 7px;
@@ -3747,7 +3753,8 @@ html[data-skin="aurora"][data-theme="light"] {
   --code-head: rgba(13, 122, 134, 0.06);
   --brand-tile: rgba(60, 200, 210, 0.16);
 
-  --bg-hover: #0d7a86;
+  /* 悬停底色比主色深一档：和 --accent-fg 的对比度到 7.67，满足 AAA（原 #0d7a86 只有 4.92） */
+  --bg-hover: #085a64;
   --bg-selected: rgba(13, 122, 134, 0.14);
   --text-selected: #0c3f45;
   --text-selected-muted: #3f6b72;

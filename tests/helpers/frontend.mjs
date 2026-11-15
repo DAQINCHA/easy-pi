@@ -58,6 +58,14 @@ function unrefTimeout(fn, ms, ...args) {
   return timer;
 }
 
+// app.js 的速率采样会开一个 setInterval，只有「本轮结束」才 clearInterval。
+// 假环境里的测试常常不派发结束事件，裸的 interval 会把 Node 进程一直拽着不退出。
+function unrefInterval(fn, ms, ...args) {
+  const timer = setInterval(fn, ms, ...args);
+  timer.unref?.();
+  return timer;
+}
+
 /* ----------------------------- tiny DOM ---------------------------- */
 
 const VOID_TAGS = new Set([
@@ -721,7 +729,7 @@ export function loadApp({ fetch: fetchImpl } = {}) {
     crypto: globalThis.crypto,
     setTimeout: unrefTimeout,
     clearTimeout,
-    setInterval,
+    setInterval: unrefInterval,
     clearInterval,
     requestAnimationFrame: (fn) => {
       fn(0);

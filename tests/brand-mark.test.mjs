@@ -14,9 +14,19 @@ function ruleBlocks(selector) {
   return CSS.match(re) || [];
 }
 
+// 极光玻璃深色为了在深色玻璃底上让 π 看得见，刻意给子图写了 filter: none。
+// 它只在 html[data-skin="aurora"][data-theme="dark"] 下生效，不是「后来又盖掉黑化」。
+// 判断黑化有没有被覆盖时只看不带皮肤前缀的全局规则，皮肤里的这条例外单独核。
+function globalRuleBlocks(selector) {
+  return ruleBlocks(selector).filter((block) => {
+    const head = block.slice(0, block.indexOf("{"));
+    return !/html\[data-skin/.test(head);
+  });
+}
+
 function lastMatchingBlock(selector) {
-  const blocks = ruleBlocks(selector);
-  assert.ok(blocks.length, "missing selector " + selector);
+  const blocks = globalRuleBlocks(selector);
+  assert.ok(blocks.length, "missing global rule " + selector);
   return blocks[blocks.length - 1];
 }
 
@@ -44,12 +54,17 @@ describe("sidebar brand mark stays black on the yellow tile", () => {
     assert.match(img, /\.brand\s+\.brand-mark\s+img/);
   });
 
-  it("has no later rule that undoes the child-image blackening", () => {
-    const imgBlocks = [...CSS.matchAll(/[^{}]*\.brand-mark\s+img[^{}]*\{[^}]*\}/g)];
-    assert.ok(imgBlocks.length, "missing .brand-mark img rule");
-    const last = imgBlocks[imgBlocks.length - 1][0];
+  it("has no later global rule that undoes the child-image blackening", () => {
+    const imgBlocks = globalRuleBlocks(".brand-mark img");
+    assert.ok(imgBlocks.length, "missing global .brand-mark img rule");
+    const last = imgBlocks[imgBlocks.length - 1];
     assert.match(last, /filter:\s*brightness\(0\)/);
     assert.doesNotMatch(last, /filter:\s*none/);
     assert.doesNotMatch(last, /filter:\s*invert\(/);
+
+    // 只允许极光玻璃深色这一条例外，别让别处悄悄再塞一个 filter: none。
+    const exceptions = ruleBlocks(".brand-mark img").filter((block) => /filter:\s*none/.test(block));
+    assert.equal(exceptions.length, 1, "只允许极光深色这一条例外");
+    assert.match(exceptions[0], /html\[data-skin="aurora"\]\[data-theme="dark"\]/);
   });
 });
