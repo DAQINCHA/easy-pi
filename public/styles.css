@@ -900,6 +900,12 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   scroll-behavior: smooth;
   overscroll-behavior: contain;
   --thread-scroll-thumb: transparent;
+  --thread-scrollbar: 10px;
+  /* 滚动条常驻会占掉右边 10px，内容盒的中线因此比窗口中线左移 5px；
+     而输入框在滚动容器外面，中线没动，于是消息比输入框偏左 5px。
+     薄荷陶瓷给助手消息画了卡片，一眼就能看出卡片左窄右宽；其它皮肤只是裸文字，
+     看不出来，但偏移一样在。左边补一条同样宽度的内边距，中线就对齐了。 */
+  padding-left: var(--thread-scrollbar);
   transition: --thread-scroll-thumb 200ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -908,7 +914,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .thread.is-scrolling { --thread-scroll-thumb: var(--scroll-thumb); }
 /* 10px 槽里用 3px 透明边框只画中间 4px，是细直角滑块而不是又宽又长的粗条；
    内容不足时滑块全高，但静止时变量是 transparent，看不见。 */
-.thread::-webkit-scrollbar { width: 10px; height: 10px; }
+.thread::-webkit-scrollbar { width: var(--thread-scrollbar); height: var(--thread-scrollbar); }
 .thread::-webkit-scrollbar-track { background: transparent; }
 .thread::-webkit-scrollbar-thumb {
   background: var(--thread-scroll-thumb);
