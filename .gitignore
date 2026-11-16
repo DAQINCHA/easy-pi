@@ -5,3 +5,4 @@ secrets/
 node_modules/
 .easy-pi-webui/
 /uploads/
+shells/*/build/

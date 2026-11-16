@@ -1,4 +1,4 @@
-# easy-pi-webui
+# easy-pi
 
 给 [pi](https://pi.dev) 做的一个网页界面，面向不写代码、不看代码的小白 vibecoder：不用记命令、不用读代码，打开网页就能给 pi 派活、看进度、管理会话。底层用 pi 自己的 RPC 模式跑真实的 pi 会话。
 
@@ -9,7 +9,7 @@
 前提：Node.js 22.19 或更新，并且已经装好、登录过 pi（终端里 `pi --version` 有输出）。
 
 ```bash
-cd node-server/easy-pi-webui
+cd node-server/easy-pi
 npm start
 ```
 
@@ -140,7 +140,7 @@ Service Worker 只在**安全上下文**里工作：`http://127.0.0.1:30142`、`
 ## 目录
 
 ```
-easy-pi-webui/
+easy-pi/
 ├── server.js            HTTP + SSE 服务
 ├── lib/
 │   ├── pi-bridge.js     pi 子进程、JSONL 分帧、事件回放
@@ -159,3 +159,120 @@ easy-pi-webui/
 │       └── markdown.js  无依赖 Markdown 渲染 + 轻量高亮
 └── 启动 easy-pi-webui.command
 ```
+
+## macOS 壳（Swift）
+
+给这个项目套一个原生 macOS 外壳：双击就开，不用终端、不用浏览器。
+
+- 只用系统自带的 `swiftc` 编译，没有 npm 依赖，没有构建工具
+- 编译产物约 300 KB（对比 Electron 的 150–250 MB）
+- 壳不复制网页代码：界面改动落在项目里的 `public/`，浏览器和 App 都生效；壳只负责「起服务、开窗口、补通知、关窗口时收尾」
+
+### 它做了什么
+
+1. 找 easy-pi 项目根目录（有 `server.js` 的那个）
+2. 探 `127.0.0.1:30142`：
+   - 已经在跑本项目的服务 → 直接复用，退出时也不动它
+   - 空着 → 起一个自己的 `node server.js`，等它报 `listening on`
+   - 被别的程序占着 → 窗口里写明原因，不猜、不杀
+3. 用 WKWebView 打开页面
+4. 关窗即退出；退出前给自己起的那个 node 发 SIGTERM，8 秒不走再 SIGKILL
+
+### 编译
+
+```bash
+cd shells/swift
+./build.sh
+```
+
+产物：`shells/swift/build/Easy-Pi.app`。第一次双击如果被系统拦，去「系统设置 → 隐私与安全性」点「仍要打开」。
+
+需要 Xcode Command Line Tools（`xcode-select --install`）。不需要完整 Xcode。
+
+### 运行
+
+双击 `shells/swift/build/Easy-Pi.app`，或者：
+
+```bash
+open "shells/swift/build/Easy-Pi.app"
+```
+
+`⌘F` 直接跳到侧栏搜索框（侧栏收起时会先展开），鼠标悬停在搜索框上会显示这个提示，和网页版一致。AppKit 菜单「编辑 → 查找会话」也绑了同一个键：菜单比网页更先收到按键，所以由菜单补发一次键盘事件给网页，快捷键逻辑只留一份。
+
+### 配置
+
+| 环境变量 | 作用 |
+| --- | --- |
+| `PI_WEBUI_DIR` | 直接指定项目根目录（有 `server.js` 的那个） |
+| `PI_NODE` | 直接指定 node 可执行文件 |
+| `PORT` | 换端口，默认 `30142` |
+
+不设也行：程序会从 `.app` 所在位置往上找项目根（`shells/swift/build/` 往上两级就是 `easy-pi/` 本身），找不到就弹一次目录选择框，选完记进 UserDefaults（`easyPiWebUIServerDirectory`）。
+
+node 的查找顺序：`PI_NODE` → `/opt/homebrew/bin`、`/usr/local/bin`、`/usr/bin`、`/opt/local/bin` → `~/.nvm/versions/node/*/bin`（取版本号最大的）。
+
+### 窗口外观
+
+没有标题栏：标题文字隐藏、标题栏透明，网页铺满整个窗口。
+
+#### 一条线对齐
+
+红黄绿三个按钮默认在窗口最顶上（中心距顶 12pt），顶栏内容是居中的，两边不在一条线上。壳做的事：
+
+- 顶栏设成 **53px**（border-box 扣掉 1px 下边框，内容区 52px，中心 26pt）
+- 三个按钮往下移到中心也是 **26pt**（`alignTrafficLights()`，窗口缩放后重设一次）
+
+实测：按钮中心 26.0、折叠按钮 26.0、标题 26.0。
+
+按钮已经跑到标题栏视图下边界外面了，但点击仍然有效（`hitTest` 实测能拿到 `_NSThemeWidget`）。
+
+#### 左边也对齐
+
+红黄绿三个按钮、品牌图标（π）、侧栏「新对话」按钮，三者左边缘在同一条竖线上。
+
+不写死数字，每次载入现量：
+
+1. 网页量出 `.new-chat` 的左边缘（实测 10pt）和侧栏的 `padding-left`
+2. 用 `.sidebar-head { margin-left: … }` 把品牌行挪到同一个 x
+3. 把 10 通过 `shellLayout` 消息告诉壳，壳把三个按钮整体右移同样的量（实测 9 → 10）
+
+换皮肤后侧栏内边距变了也会自己跟上。折叠时顶栏左侧留白也是算出来的：`calc(--easy-pi-shell-left + 74px)`，实测 84px。
+
+- 头部再下移 38px，品牌行顶边落在 52pt
+- 按钮底边 33pt，所以按钮上方留白 19pt、下方留白 19pt，上下对称
+
+#### 折叠按钮跟着侧栏走
+
+| 侧栏 | 位置 | 注入的规则 |
+| --- | --- | --- |
+| 展开 | 侧栏右上角，和三个按钮同一行（top 11pt，中心 26pt） | `.sidebar > #menuBtn { position: absolute; top: 11px; right: 10px }` |
+| 收起 | 顶栏最前面，紧接三个按钮右边 | `.app.sidebar-hidden .topbar { padding-left: calc(--easy-pi-shell-left + 74px) }`（实测 84px） |
+
+移动用 `appendChild` / `insertBefore`，元素没重建，原来的点击监听还在。侧栏拖动改宽度、点按钮折叠都会触发。
+
+#### 网页顶边那条线
+
+`public/styles.css` 里 `.app` 有一条 `border-top`，给浏览器窗口用。壳里没有标题栏，不需要它，所以注入 `.app { border-top: 0 !important; }`。
+
+浏览器 / PWA 保留这条线，App 里没有。
+
+#### 拖窗口
+
+整条顶栏都是拖动区（默认 53px 高，跟网页 `.topbar` 同高）：侧栏头顶和主界面顶栏都能按住拖。
+
+顶栏里的按钮不能被拖动区盖住，所以网页在每次布局变化后把这些矩形报给壳：
+
+- `#menuBtn`、`#notifyBtn`、`#themeBtn`
+- 侧栏展开时的品牌行、侧栏边框的拖宽条（`#sidebarResizer`）
+
+壳里的 `DragStripView.hitTest` 对落在这些矩形里的鼠标事件放行，网页照常收到点击和悬停；其余区域用 `mouseDown` → `performDrag(with:)` 显式发起拖动（光靠 `mouseDownCanMoveWindow` 在这套配置下不生效）。拖动区高度也由网页量出来，换皮肤改顶栏高度会自己跟上。
+
+红黄绿三个按钮在标题栏视图里，本来就在拖动区之上，不受影响。
+
+### 完成通知
+
+WKWebView 没有 `window.Notification`，铃铛点不亮。壳在网页加载前注入一个替身：网页照旧调 `Notification.permission` / `requestPermission()` / `new Notification(...)`，`NotificationBridge` 把它们转给系统通知中心。
+
+- 第一次点铃铛会弹一次 macOS 授权框，之后「本轮结束且页面不在前台」就弹横幅，点横幅把窗口叫回前台
+- 授权状态每次启动都问一次系统；在系统设置里撤销后，铃铛会自己变灰
+- 网页原本优先走 Service Worker 的通知路径在 WKWebView 里弹不出来，注入脚本让它退回上面的替身；浏览器 / PWA 不注入，行为不变

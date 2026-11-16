@@ -1,4 +1,4 @@
-# AGENTS.md — easy-pi-webui
+# AGENTS.md — easy-pi
 
 本文件是根 `AGENTS.md` 的补充，**只在改动这个项目的界面 / 皮肤时参考**。目录结构、技术选型、测试与发布规矩仍按根 `AGENTS.md`。
 
