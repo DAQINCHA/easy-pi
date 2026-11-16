@@ -40,6 +40,26 @@ export function clipText(text, limit) {
   return value.slice(0, limit).replace(/[，,。.；;：:\s]+$/, "") + "…";
 }
 
+/**
+ * 把「状态码 + JSON 外壳」的报错原文还原成人话。
+ * 例：`402: {"code":"401008","message":"..."}` → `402: ...`
+ */
+export function extractErrorText(raw) {
+  const text = String(raw || "");
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return raw;
+  let parsed;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch (error) {
+    return raw;
+  }
+  if (!parsed || typeof parsed !== "object" || typeof parsed.message !== "string") return raw;
+  const prefix = text.slice(0, start).trim();
+  return prefix ? prefix + " " + parsed.message : parsed.message;
+}
+
 export function baseName(path) {
   const normalized = String(path || "").replace(/\\/g, "/");
   const slash = normalized.lastIndexOf("/");
@@ -328,7 +348,7 @@ export function reduceTaskState(state, event) {
         next.writing = false;
         const message = event.message;
         if (message.stopReason === "error" || message.errorMessage) {
-          next.agentError = clipText(message.errorMessage || "模型请求失败", 80);
+          next.agentError = clipText(extractErrorText(message.errorMessage || "模型请求失败"), 300);
         }
       }
       break;
@@ -384,7 +404,7 @@ export function reduceTaskState(state, event) {
       next.retrying = false;
       next.retryNote = "";
       if (event.success === false) {
-        next.agentError = clipText(event.finalError || "重试失败", 80);
+        next.agentError = clipText(extractErrorText(event.finalError || "重试失败"), 300);
       } else if (event.success === true) {
         next.agentError = "";
       }
