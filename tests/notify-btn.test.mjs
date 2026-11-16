@@ -7,7 +7,6 @@ import vm from "node:vm";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const HTML = readFileSync(join(ROOT, "public/index.html"), "utf8");
-const CSS = readFileSync(join(ROOT, "public/styles.css"), "utf8");
 const JS = readFileSync(join(ROOT, "public/js/app.js"), "utf8");
 
 function functionSource(name) {
@@ -26,124 +25,108 @@ function functionSource(name) {
   assert.fail("unclosed function " + name);
 }
 
-function lastRule(selector) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp("(?:^|,)\\s*" + escaped + "\\s*(?:,[^{]*)?\\{[^}]*\\}", "gm");
-  const blocks = CSS.match(re) || [];
-  assert.ok(blocks.length, "missing selector " + selector);
-  return blocks[blocks.length - 1];
+function storage(initial) {
+  const store = Object.assign({}, initial);
+  return {
+    getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
+    setItem: (key, value) => {
+      store[key] = String(value);
+    },
+  };
 }
 
 function loadNotifyHelpers(env) {
   const start = JS.indexOf('const NOTIFY_KEY = "piwebui.notify"');
   assert.notEqual(start, -1);
   const end = JS.indexOf("function writeNotifyPref", start);
+  assert.notEqual(end, -1);
   const helpers = JS.slice(start, end);
   const context = vm.createContext({
-    window: env.window,
+    window: env.window || {},
     Notification: env.window && env.window.Notification,
     localStorage: env.localStorage,
   });
   vm.runInContext(helpers, context);
+  vm.runInContext(functionSource("notifyStatusText"), context);
   return context;
 }
 
-describe("notify button on/off state", () => {
-  it("restores the piwebui.notify key and does not treat pref alone as enabled", () => {
-    assert.match(JS, /const NOTIFY_KEY = "piwebui.notify"/);
+describe("completion notification settings", () => {
+  it("keeps the piwebui.notify key and only enables it with granted permission", () => {
+    assert.match(JS, /const NOTIFY_KEY = "piwebui\.notify"/);
     const enabled = functionSource("notifyEnabled");
     assert.match(enabled, /readNotifyPref\(\)/);
     assert.match(enabled, /notificationPermissionState\(\)\s*===\s*"granted"/);
-    const update = functionSource("updateNotifyBtn");
-    assert.match(update, /notifyEnabled\(\)/);
-    assert.doesNotMatch(update, /const on = readNotifyPref\(\)/);
-    assert.match(update, /setAttribute\("aria-pressed", on \? "true" : "false"\)/);
-    assert.match(update, /notifyBtnLabel\(on\)/);
-    assert.match(functionSource("toggleNotify"), /Notification\.requestPermission/);
+
+    const onPref = storage({ "piwebui.notify": "1" });
+    const cases = [
+      ["unsupported", {}, "unsupported", false],
+      ["denied", { Notification: { permission: "denied" } }, "denied", false],
+      ["default", { Notification: { permission: "default" } }, "default", false],
+      ["granted", { Notification: { permission: "granted" } }, "granted", true],
+    ];
+    for (const [name, win, permission, expected] of cases) {
+      const ctx = loadNotifyHelpers({ window: win, localStorage: onPref });
+      assert.equal(ctx.notificationPermissionState(), permission, name);
+      assert.equal(ctx.notifyEnabled(), expected, name);
+    }
+
+    const granted = { Notification: { permission: "granted" } };
+    assert.equal(loadNotifyHelpers({ window: granted, localStorage: storage({ "piwebui.notify": "0" }) }).notifyEnabled(), false);
+    assert.equal(loadNotifyHelpers({ window: granted, localStorage: storage() }).notifyEnabled(), false);
+  });
+
+  it("turns the stored preference and real permission into status text", () => {
+    const ctxFor = (permission, pref) =>
+      loadNotifyHelpers({
+        window: permission ? { Notification: { permission } } : {},
+        localStorage: storage(pref === null ? {} : { "piwebui.notify": pref }),
+      });
+
+    assert.equal(ctxFor("granted", "1").notifyStatusText(true), "开");
+    assert.equal(ctxFor("granted", "0").notifyStatusText(false), "关");
+    assert.equal(ctxFor(null, "1").notifyStatusText(false), "关（当前浏览器不支持）");
+    assert.equal(ctxFor("denied", "1").notifyStatusText(false), "关（权限已拒绝）");
+    assert.equal(ctxFor("default", "1").notifyStatusText(false), "关（尚未授权）");
+  });
+
+  it("requests permission only when it is still default, and never from the render path", () => {
+    const toggle = functionSource("toggleNotify");
+    assert.match(toggle, /Notification\.requestPermission/);
+    assert.match(toggle, /permission === "default"/);
+    assert.match(toggle, /writeNotifyPref\(false\)/);
+    assert.match(toggle, /writeNotifyPref\(true\)/);
     assert.equal((JS.match(/Notification\.requestPermission/g) || []).length, 1);
-    assert.doesNotMatch(functionSource("updateNotifyBtn"), /requestPermission/);
+
+    assert.doesNotMatch(functionSource("notificationPermissionState"), /requestPermission/);
     assert.doesNotMatch(functionSource("notifyEnabled"), /requestPermission/);
-    assert.doesNotMatch(functionSource("watchNotifyPermission"), /requestPermission/);
+    assert.doesNotMatch(functionSource("openSettingsMenu"), /requestPermission/);
   });
 
-  it("computes labels from the real permission state", () => {
-    const store = { "piwebui.notify": "1" };
-    const localStorage = {
-      getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
-    };
-
-    let ctx = loadNotifyHelpers({
-      window: {},
-      localStorage,
-    });
-    assert.equal(ctx.notificationPermissionState(), "unsupported");
-    assert.equal(ctx.notifyEnabled(), false);
-
-    ctx = loadNotifyHelpers({
-      window: { Notification: { permission: "denied" } },
-      localStorage,
-    });
-    assert.equal(ctx.notificationPermissionState(), "denied");
-    assert.equal(ctx.notifyEnabled(), false);
-
-    ctx = loadNotifyHelpers({
-      window: { Notification: { permission: "default" } },
-      localStorage,
-    });
-    assert.equal(ctx.notificationPermissionState(), "default");
-    assert.equal(ctx.notifyEnabled(), false);
-
-    ctx = loadNotifyHelpers({
-      window: { Notification: { permission: "granted" } },
-      localStorage,
-    });
-    assert.equal(ctx.notifyEnabled(), true);
-
-    ctx = loadNotifyHelpers({
-      window: { Notification: { permission: "granted" } },
-      localStorage: { getItem: () => "0" },
-    });
-    assert.equal(ctx.notifyEnabled(), false);
-
-    const label = functionSource("notifyBtnLabel");
-    assert.match(label, /完成时通知：开/);
-    assert.match(label, /完成时通知：关（当前浏览器不支持）/);
-    assert.match(label, /完成时通知：关（权限已拒绝）/);
-    assert.match(label, /完成时通知：关（尚未授权）/);
+  it("shows the notify row in the settings menu with bell / slashed bell, subtitle and check", () => {
+    const menu = functionSource("openSettingsMenu");
+    assert.match(menu, /labelOnly: true, label: "通知"/);
+    assert.match(menu, /label: "完成时通知"/);
+    assert.match(menu, /icon: notifyOn \? "bell" : "bell-off"/);
+    assert.match(menu, /sub: notifyStatusText\(notifyOn\)/);
+    assert.match(menu, /active: notifyOn/);
+    assert.match(menu, /toggleNotify\(\)/);
+    assert.match(menu, /const notifyOn = notifyEnabled\(\)/);
   });
 
-  it("uses a slashed off icon and a filled on icon in the existing sprite", () => {
-    const btn = HTML.match(/<button class="icon-btn" id="notifyBtn"[^>]*>[\s\S]*?<\/button>/);
-    assert.ok(btn);
-    assert.match(btn[0], /aria-pressed="false"/);
-    assert.match(btn[0], /class="notify-icon-off"[^>]*>\s*<use href="#i-bell-off"/);
-    assert.match(btn[0], /class="notify-icon-on"[^>]*>\s*<use href="#i-bell"/);
-    assert.match(HTML, /<symbol id="i-bell-off"/);
-    assert.match(HTML, /<symbol id="i-bell-off"[^>]*>[\s\S]*?M4 20L20 4/);
-  });
+  it("ships hollow bell symbols and no shirt icon", () => {
+    const bell = HTML.match(/<symbol id="i-bell"[\s\S]*?<\/symbol>/);
+    const bellOff = HTML.match(/<symbol id="i-bell-off"[\s\S]*?<\/symbol>/);
+    assert.ok(bell, "missing i-bell symbol");
+    assert.ok(bellOff, "missing i-bell-off symbol");
+    assert.match(bellOff[0], /M4 20L20 4/);
 
-  it("keeps a transparent resting on-state, and uses the same yellow hover as other icon buttons", () => {
-    const off = lastRule("#notifyBtn");
-    assert.match(off, /background:\s*transparent/);
-    assert.match(off, /border:\s*0/);
-    assert.match(off, /color:\s*var\(--text-3\)/);
-    assert.doesNotMatch(off, /var\(--accent\)|var\(--bg-hover\)|#ffe600/);
+    for (const symbol of [bell[0], bellOff[0]]) {
+      assert.doesNotMatch(symbol, /fill\s*:\s*currentColor/i);
+      assert.doesNotMatch(symbol, /fill\s*=\s*["']?(?:currentColor|#[0-9a-f]{3,8})/i);
+    }
 
-    const on = lastRule("#notifyBtn.on");
-    assert.match(on, /background:\s*transparent/);
-    assert.match(on, /color:\s*var\(--text-1\)/);
-    assert.doesNotMatch(on, /var\(--accent\)|var\(--bg-hover\)|#ffe600/);
-
-    const hover = lastRule("#notifyBtn:hover");
-    assert.match(hover, /#notifyBtn\.on:hover/);
-    assert.doesNotMatch(hover, /:focus-visible/);
-    assert.match(hover, /background:\s*var\(--bg-hover\)/);
-    assert.match(hover, /color:\s*var\(--accent-fg\)/);
-    assert.doesNotMatch(hover, /color-mix\(/);
-
-    assert.match(lastRule("#notifyBtn .notify-icon-on"), /display:\s*none/);
-    assert.match(lastRule("#notifyBtn.on .notify-icon-on"), /display:\s*block/);
-    assert.match(lastRule("#notifyBtn.on .notify-icon-on"), /fill:\s*currentColor/);
-    assert.match(lastRule("#notifyBtn.on .notify-icon-off"), /display:\s*none/);
+    assert.doesNotMatch(HTML, /i-shirt/);
+    assert.doesNotMatch(JS, /i-shirt/);
   });
 });
