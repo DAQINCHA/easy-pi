@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { MAX_FILE_BYTES } from "../lib/files.js";
-import { sessionsDir } from "../lib/sessions.js";
 import { fileReq, startServer, upload } from "./helpers/harness.mjs";
 
 describe("file upload / preview / download HTTP", () => {
@@ -278,10 +277,8 @@ describe("file upload / preview / download HTTP", () => {
     utimesSync(orphan, stamp, stamp);
 
     // 至少有一个可读的会话文件，清理才会执行（读不到会话时一律不删）。
-    const folder = sessionsDir(realpathSync(server.workspace));
-    mkdirSync(folder, { recursive: true });
     writeFileSync(
-      join(folder, "cleanup.jsonl"),
+      join(server.envHome.sessions, "cleanup.jsonl"),
       JSON.stringify({ type: "message", message: { role: "user", content: "与上传无关的内容" } }) + "\n",
     );
 
