@@ -38,7 +38,7 @@ describe("file upload / preview / download HTTP", () => {
     const result = await upload(server.base, "../../etc/passwd.txt", Buffer.from("x"));
     assert.equal(result.res.status, 200);
     assert.equal(result.data.name, "passwd.txt");
-    assert.ok(result.data.path.startsWith(join(realpathSync(server.projectRoot), "uploads")));
+    assert.ok(result.data.path.startsWith(join(server.stateDir, "uploads")));
   });
 
   it("rejects oversized uploads", async () => {
@@ -127,11 +127,11 @@ describe("file upload / preview / download HTTP", () => {
     assert.equal(ok.res.status, 200);
   });
 
-  it("keeps new uploads in the project root across workspace switches", async () => {
-    const projectUploads = join(realpathSync(server.projectRoot), "uploads");
+  it("keeps new uploads in the state dir across workspace switches", async () => {
+    const stateUploads = join(server.stateDir, "uploads");
     const first = await upload(server.base, "keep.txt", Buffer.from("in-first"));
     assert.equal(first.res.status, 200);
-    assert.ok(first.data.path.startsWith(projectUploads));
+    assert.ok(first.data.path.startsWith(stateUploads));
     assert.ok(!first.data.path.startsWith(join(realpathSync(server.workspace), "uploads")));
 
     // A pre-existing workspace-local upload keeps its old workspace boundary.
@@ -181,7 +181,7 @@ describe("file upload / preview / download HTTP", () => {
 
     const second = await upload(server.base, "new.txt", Buffer.from("in-second"));
     assert.equal(second.res.status, 200);
-    assert.ok(second.data.path.startsWith(projectUploads));
+    assert.ok(second.data.path.startsWith(stateUploads));
     assert.ok(!second.data.path.startsWith(join(realpathSync(next), "uploads")));
     const fresh = await fileReq(server.base, second.data.path, "download");
     assert.equal(fresh.res.status, 200);
@@ -199,12 +199,12 @@ describe("file upload / preview / download HTTP", () => {
     assert.deepEqual(legacyBack.data, Buffer.from("legacy"));
   });
 
-  it("ignores launch cwd for the project upload location", async () => {
+  it("ignores launch cwd for the upload location", async () => {
     const other = await startServer({ cwd: tmpdir() });
     try {
       const file = await upload(other.base, "cwd.txt", Buffer.from("cwd-independent"));
       assert.equal(file.res.status, 200);
-      assert.ok(file.data.path.startsWith(join(realpathSync(other.projectRoot), "uploads")));
+      assert.ok(file.data.path.startsWith(join(other.stateDir, "uploads")));
       assert.ok(!file.data.path.startsWith(join(realpathSync(other.workspace), "uploads")));
     } finally {
       await other.stop();
@@ -213,7 +213,7 @@ describe("file upload / preview / download HTTP", () => {
 
   it("passes attachment paths into the prompt and keeps image-only / bare messages unchanged", async () => {
     const file = await upload(server.base, "材料.txt", Buffer.from("材料正文"));
-    assert.ok(file.data.path.startsWith(join(realpathSync(server.projectRoot), "uploads")));
+    assert.ok(file.data.path.startsWith(join(server.stateDir, "uploads")));
     const created = await fetch(server.base + "/api/session/new", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -271,7 +271,7 @@ describe("file upload / preview / download HTTP", () => {
   });
 
   it("cleans up only unreferenced uploads on demand", async () => {
-    const uploads = join(realpathSync(server.projectRoot), "uploads");
+    const uploads = join(server.stateDir, "uploads");
     const orphan = join(uploads, "orphan-" + Date.now() + ".txt");
     writeFileSync(orphan, "old payload");
     const stamp = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);

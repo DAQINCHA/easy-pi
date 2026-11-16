@@ -29,6 +29,7 @@ import {
   cloneLeafState,
 } from "./lib/tree-nav.js";
 import { serveStatic } from "./lib/static.js";
+import { resolveStateDir } from "./lib/state-dir.js";
 import {
   FileAccessError,
   classifyFile,
@@ -44,33 +45,41 @@ import {
 } from "./lib/files.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-// Actual EasyPI project root is derived from this source file, never from the
-// selected workspace, launch cwd, or environment configuration.
-const PROJECT_ROOT = HERE;
 const PUBLIC_DIR = join(HERE, "public");
-const DATA_DIR = join(HERE, "data");
-const ARCHIVE_FILE = join(DATA_DIR, "archived.json");
-const PINNED_FILE = join(DATA_DIR, "pinned.json");
+
+// 运行时状态统一放一个目录（默认 ~/.easy-pi，可用 EASY_PI_STATE_DIR 覆盖）：
+// 上传、归档/置顶记录、本机配置都在这儿，项目文件夹只放代码。
+const STATE_DIR = resolveStateDir();
+const ARCHIVE_FILE = join(STATE_DIR, "archived.json");
+const PINNED_FILE = join(STATE_DIR, "pinned.json");
+// 旧位置只读回落：新位置没有文件时读这些，写入永远写新位置。
+const LEGACY_DATA_DIR = join(HERE, "data");
+const LEGACY_ARCHIVE_FILE = join(LEGACY_DATA_DIR, "archived.json");
+const LEGACY_PINNED_FILE = join(LEGACY_DATA_DIR, "pinned.json");
 
 // 每台电脑自己的配置，不放 iCloud、不放 ~/.pi，避免污染 pi 的真实设置与凭据。
-const CONFIG_DIR = join(homedir(), ".config", "easy-pi-webui");
-const CONFIG_FILE = join(CONFIG_DIR, "settings.json");
+const CONFIG_DIR = STATE_DIR;
+const CONFIG_FILE = join(STATE_DIR, "settings.json");
+const LEGACY_CONFIG_FILE = join(homedir(), ".config", "easy-pi-webui", "settings.json");
 
 function readSettings() {
-  let raw;
-  try {
-    raw = readFileSync(CONFIG_FILE, "utf8");
-  } catch (error) {
-    if (error.code === "ENOENT") return { data: null, error: null };
-    return { data: null, error: error.message };
+  for (const file of [CONFIG_FILE, LEGACY_CONFIG_FILE]) {
+    let raw;
+    try {
+      raw = readFileSync(file, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      return { data: null, error: error.message };
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("内容不是对象");
+      return { data: parsed, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
   }
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("内容不是对象");
-    return { data: parsed, error: null };
-  } catch (error) {
-    return { data: null, error: error.message };
-  }
+  return { data: null, error: null };
 }
 
 /** 原子替换；保留未知字段；配置不可读时不覆盖旧文件。 */
@@ -206,18 +215,33 @@ function piVersionString() {
   return piVersion;
 }
 
-function readArchive() {
-  try {
-    const parsed = JSON.parse(readFileSync(ARCHIVE_FILE, "utf8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
+/** 读归档/置顶记录；新位置没有文件时回落读项目根 data/ 下的旧文件。 */
+function readRecordFile(file, legacyFile) {
+  for (const target of [file, legacyFile]) {
+    let raw;
+    try {
+      raw = readFileSync(target, "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      return {};
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
   }
+  return {};
+}
+
+function readArchive() {
+  return readRecordFile(ARCHIVE_FILE, LEGACY_ARCHIVE_FILE);
 }
 
 function writeArchive(map) {
   try {
-    mkdirSync(DATA_DIR, { recursive: true });
+    mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 });
     writeFileSync(ARCHIVE_FILE, JSON.stringify(map, null, 2), "utf8");
   } catch (error) {
     log("archive write failed:", error.message);
@@ -225,17 +249,12 @@ function writeArchive(map) {
 }
 
 function readPinned() {
-  try {
-    const parsed = JSON.parse(readFileSync(PINNED_FILE, "utf8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+  return readRecordFile(PINNED_FILE, LEGACY_PINNED_FILE);
 }
 
 function writePinned(map) {
   try {
-    mkdirSync(DATA_DIR, { recursive: true });
+    mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 });
     writeFileSync(PINNED_FILE, JSON.stringify(map, null, 2), "utf8");
   } catch (error) {
     log("pinned write failed:", error.message);
@@ -272,7 +291,7 @@ function scheduleUploadCleanup(reason) {
 
 function runUploadCleanup(reason) {
   try {
-    const result = cleanupUnreferencedUploads(PROJECT_ROOT, { sessionRoots: [sessionRoot()] });
+    const result = cleanupUnreferencedUploads({ sessionRoots: [sessionRoot()] });
     if (result.deleted.length) {
       log("uploads cleanup (" + reason + "): removed " + result.deleted.length + " file(s), " + result.freedBytes + " bytes");
     } else if (result.aborted) {
@@ -1366,7 +1385,7 @@ async function handleApi(req, res, url) {
       return sendFileError(res, error);
     }
     try {
-      const saved = saveUpload(PROJECT_ROOT, filename, raw);
+      const saved = saveUpload(filename, raw);
       return json(res, 200, saved);
     } catch (error) {
       return sendFileError(res, error);

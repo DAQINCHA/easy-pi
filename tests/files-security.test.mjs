@@ -5,7 +5,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import {
   MAX_FILE_BYTES,
   UPLOAD_DIR_SEGMENTS,
@@ -15,6 +15,19 @@ import {
   safeBasename,
   saveUpload,
 } from "../lib/files.js";
+
+// 上传目录现在由状态目录决定：每个用例指到自己的临时目录，绝不碰 ~/.easy-pi。
+let stateDir;
+
+beforeEach(() => {
+  stateDir = mkdtempSync(join(tmpdir(), "epw-state-"));
+  process.env.EASY_PI_STATE_DIR = stateDir;
+});
+
+afterEach(() => {
+  delete process.env.EASY_PI_STATE_DIR;
+  rmSync(stateDir, { recursive: true, force: true });
+});
 
 function tempWorkspace() {
   const dir = mkdtempSync(join(tmpdir(), "epw-ws-"));
@@ -114,12 +127,11 @@ describe("resolveWorkspaceFile", () => {
 });
 
 describe("saveUpload", () => {
-  it("stores unique names under the project uploads root, not the workspace", () => {
+  it("stores unique names under the state uploads root, not the workspace", () => {
     const ws = tempWorkspace();
-    const { project } = tempProject();
-    const uploads = join(realpathSync(project), ...UPLOAD_DIR_SEGMENTS);
-    const a = saveUpload(project, "同名.txt", Buffer.from("one"));
-    const b = saveUpload(project, "同名.txt", Buffer.from("two"));
+    const uploads = join(realpathSync(stateDir), ...UPLOAD_DIR_SEGMENTS);
+    const a = saveUpload("同名.txt", Buffer.from("one"));
+    const b = saveUpload("同名.txt", Buffer.from("two"));
     assert.notEqual(a.path, b.path);
     assert.equal(readFileSync(a.path, "utf8"), "one");
     assert.equal(readFileSync(b.path, "utf8"), "two");
@@ -128,33 +140,32 @@ describe("saveUpload", () => {
     assert.ok(!a.path.startsWith(realpathSync(ws) + "/"));
     assert.match(a.relativePath, /^uploads\//);
   });
-  it("rejects an uploads symlink that points back at the project root", () => {
-    const { project } = tempProject();
-    symlinkSync(project, join(project, ...UPLOAD_DIR_SEGMENTS));
-    assert.throws(() => saveUpload(project, "x.txt", Buffer.from("x")), (error) => error.code === "upload_dir");
-    assert.ok(!readdirSync(project).includes("x.txt"));
+  it("rejects an uploads symlink that points back at the state root", () => {
+    symlinkSync(stateDir, join(stateDir, ...UPLOAD_DIR_SEGMENTS));
+    assert.throws(() => saveUpload("x.txt", Buffer.from("x")), (error) => error.code === "upload_dir");
+    assert.ok(!readdirSync(stateDir).includes("x.txt"));
   });
   it("rejects oversized buffers", () => {
-    const { project } = tempProject();
     const huge = Buffer.alloc(MAX_FILE_BYTES + 1);
-    assert.throws(() => saveUpload(project, "big.bin", huge), (error) => error.status === 413);
+    assert.throws(() => saveUpload("big.bin", huge), (error) => error.status === 413);
   });
-  it("refuses an uploads symlink that leaves the project", () => {
-    const { dir, project } = tempProject();
+  it("refuses an uploads symlink that leaves the state dir", () => {
+    const dir = mkdtempSync(join(tmpdir(), "epw-outside-"));
     const outside = join(dir, "outside");
     mkdirSync(outside);
-    symlinkSync(outside, join(project, ...UPLOAD_DIR_SEGMENTS));
-    assert.throws(() => saveUpload(project, "x.txt", Buffer.from("x")), (error) => error.code === "upload_dir");
+    symlinkSync(outside, join(stateDir, ...UPLOAD_DIR_SEGMENTS));
+    assert.throws(() => saveUpload("x.txt", Buffer.from("x")), (error) => error.code === "upload_dir");
     assert.deepEqual(readdirSync(outside), []);
+    rmSync(dir, { recursive: true, force: true });
   });
 });
 
-describe("project uploads read boundary", () => {
-  it("reads project uploads and other absolute paths by real path", () => {
+describe("uploads read boundary", () => {
+  it("reads uploads and other absolute paths by real path", () => {
     const ws = tempWorkspace();
     const { dir, project } = tempProject();
-    const uploads = join(realpathSync(project), ...UPLOAD_DIR_SEGMENTS);
-    const saved = saveUpload(project, "note.txt", Buffer.from("uploaded"));
+    const uploads = join(realpathSync(stateDir), ...UPLOAD_DIR_SEGMENTS);
+    const saved = saveUpload("note.txt", Buffer.from("uploaded"));
     assert.ok(saved.path.startsWith(uploads + "/"));
     const got = resolveWorkspaceFile(ws, saved.path);
     assert.equal(got.path, realpathSync(saved.path));
@@ -195,9 +206,9 @@ describe("project uploads read boundary", () => {
 
   it("follows an uploaded-file symlink outside the uploads root for reads", () => {
     const ws = tempWorkspace();
-    const { dir, project } = tempProject();
-    const uploads = join(realpathSync(project), ...UPLOAD_DIR_SEGMENTS);
-    saveUpload(project, "first.txt", Buffer.from("first"));
+    const { dir } = tempProject();
+    const uploads = join(realpathSync(stateDir), ...UPLOAD_DIR_SEGMENTS);
+    saveUpload("first.txt", Buffer.from("first"));
     const outside = join(dir, "secret.txt");
     writeFileSync(outside, "secret");
     symlinkSync(outside, join(uploads, "link.txt"));
@@ -212,15 +223,13 @@ describe("unreferenced upload cleanup", () => {
 
   function fixture() {
     const dir = mkdtempSync(join(tmpdir(), "epw-cleanup-"));
-    const project = join(dir, "project");
-    const uploads = join(project, "uploads");
+    const uploads = join(stateDir, ...UPLOAD_DIR_SEGMENTS);
     mkdirSync(uploads, { recursive: true });
     const sessionsRoot = join(dir, "sessions");
     const sessions = join(sessionsRoot, "--ws--");
     mkdirSync(sessions, { recursive: true });
     return {
       dir,
-      project,
       uploads,
       sessionsRoot,
       addUpload(name, age = OLD) {
@@ -245,7 +254,7 @@ describe("unreferenced upload cleanup", () => {
       const fresh = f.addUpload("ccc-fresh.txt", new Date());
       f.addSession("s1.jsonl", "请读取这个文件：" + kept);
 
-      const result = cleanupUnreferencedUploads(f.project, { sessionRoots: [f.sessionsRoot] });
+      const result = cleanupUnreferencedUploads({ sessionRoots: [f.sessionsRoot] });
       assert.deepEqual(result.deleted, ["bbb-orphan.txt"]);
       assert.equal(result.freedBytes, "payload".length);
       assert.equal(result.aborted, "");
@@ -263,7 +272,7 @@ describe("unreferenced upload cleanup", () => {
       const orphan = f.addUpload("bbb-orphan.txt");
       const emptyRoot = join(f.dir, "empty-sessions");
       mkdirSync(emptyRoot);
-      const result = cleanupUnreferencedUploads(f.project, { sessionRoots: [emptyRoot] });
+      const result = cleanupUnreferencedUploads({ sessionRoots: [emptyRoot] });
       assert.equal(result.aborted, "no_sessions");
       assert.deepEqual(result.deleted, []);
       assert.ok(existsSync(orphan));
@@ -277,7 +286,7 @@ describe("unreferenced upload cleanup", () => {
     try {
       const orphan = f.addUpload("bbb-orphan.txt");
       f.addSession("s1.jsonl", "与上传无关的会话内容");
-      const result = cleanupUnreferencedUploads(f.project, {
+      const result = cleanupUnreferencedUploads({
         sessionRoots: [f.sessionsRoot],
         maxScanBytes: 1,
       });
@@ -294,7 +303,7 @@ describe("unreferenced upload cleanup", () => {
     try {
       const orphan = f.addUpload("bbb-orphan.txt");
       f.addSession("s1.jsonl", "与上传无关的会话内容");
-      const result = cleanupUnreferencedUploads(f.project, {
+      const result = cleanupUnreferencedUploads({
         sessionRoots: [f.sessionsRoot],
         dryRun: true,
       });

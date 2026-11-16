@@ -1,5 +1,5 @@
 import { createServer } from "node:net";
-import { cpSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,6 +49,10 @@ export async function startServer(opts = {}) {
   for (const entry of SOURCE_ENTRIES) {
     cpSync(join(ROOT, entry), join(projectRoot, entry), { recursive: true });
   }
+  // Runtime state (uploads, archived/pinned, settings) lives outside the
+  // project folder; keep it inside the temp home so nothing touches ~/.easy-pi.
+  const stateDir = opts.stateDir || join(envHome.dir, "state");
+  mkdirSync(stateDir, { recursive: true });
   const env = {
     ...process.env,
     HOME: envHome.home,
@@ -61,6 +65,7 @@ export async function startServer(opts = {}) {
     FAKEPI_LOG: envHome.log,
     FAKEPI_SESSION_ID: "fake-session-1",
     FAKEPI_SESSION_FILE: join(envHome.sessions, "fake.jsonl"),
+    EASY_PI_STATE_DIR: stateDir,
     ...(opts.env || {}),
   };
   delete env.PI_WEBUI_PORT;
@@ -99,6 +104,7 @@ export async function startServer(opts = {}) {
     envHome,
     workspace,
     projectRoot,
+    stateDir: realpathSync(stateDir),
     child,
     async stop() {
       if (child.exitCode != null) {
