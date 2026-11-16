@@ -438,12 +438,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   overflow: hidden;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--text-3);
+  /* 这里刻意不写 color：继承 .session-item 的前景色。
+     行悬停、选中、各皮肤 active 改的都是 .session-item 的 color，
+     这里一旦写死 --text-3 就把继承链掐断，只有 .t 跟着状态变亮。 */
 }
 .hit-tag {
   flex: none;
   font-size: 10px;
-  color: var(--text-4);
+  /* 同上，颜色继承 .session-item；不要再写死 --text-4 */
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0 6px;
@@ -451,11 +453,28 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   display: inline-flex;
   align-items: center;
 }
+/* 选中行只在边框上补一笔：字色已经随 .session-item.active 继承下来，
+   再给子元素写死 --text-selected 会盖掉薄荷皮肤自己的 active 字色。 */
+.session-item.active .hit-tag { border-color: currentColor; }
+/* 匹配片段用主题色实心 + 反相字：--accent/--accent-fg 是每套皮肤都保证可读
+   （发送键、新对话都在用）的一对。原来半透明 --yellow 压在深色底上，
+   文字仍是浅灰，正好在「行被高亮」时最看不清；下划线保证悬停底色与
+   --accent 同色时（单色反差、薄荷、海盐的浅色悬停）仍能认出匹配位置。 */
 .search-hit mark, .hit-snippet mark {
-  background: color-mix(in srgb, var(--yellow) 55%, transparent);
-  color: inherit;
+  background: var(--accent);
+  color: var(--accent-fg);
   padding: 0 1px;
   border-radius: var(--radius);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+/* 悬停行里有几套皮肤的 --bg-hover 就是 --accent（单色反差、薄荷、海盐、赛博），
+   高亮底色会和整行同色、只剩一根下划线。把这对颜色反过来用，底色与字色
+   仍然互为反相，底色也一定和行底不同。 */
+.session-wrap:not(:has(.session-item.active)):hover .search-hit mark {
+  background: var(--accent-fg);
+  color: var(--accent);
 }
 .msg.search-flash {
   outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
@@ -538,10 +557,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   border-radius: var(--radius);
   margin-bottom: 1px;
   position: relative;
+  /* 行的基础前景色：搜索结果正文/标签没有自己的 color，靠它继承。
+     悬停、选中时这里会被整行改成 --accent-fg / --text-selected，
+     子元素自动跟着变，不需要再逐个补状态规则。 */
+  color: var(--text-3);
   transition: background .15s var(--ease);
 }
-/* 行悬停（仅未选中行）：标题、时间戳、图标、旋转器切到悬停前景色。
-   选中行保持反相底与 --text-selected，不参与悬停换色，否则前景色压在选中底上会糊。 */
+/* 行悬停（仅未选中行）：整行前景色切到 --accent-fg。
+   搜索结果正文/标签不写自己的 color，靠继承自动跟上，别再加子选择器。 */
 .session-wrap:not(:has(.session-item.active)):hover .session-item,
 .session-wrap:not(:has(.session-item.active)):hover .session-item .t,
 .session-wrap:not(:has(.session-item.active)):hover .session-item .m,
@@ -549,6 +572,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap:not(:has(.session-item.active)):hover .session-action.pin.on {
   color: var(--accent-fg);
 }
+/* 标签边框原本是 --border，在不少皮肤里是透明或极淡，悬停底上等于没有，
+   跟着前景色一起画才看得出标签范围。 */
+.session-wrap:not(:has(.session-item.active)):hover .hit-tag { border-color: currentColor; }
 /* 转圈只吃 --spin-color（原因见 .session-spin），所以单列一条，不并进上面的 color 组 */
 .session-wrap:not(:has(.session-item.active)):hover .session-spin {
   --spin-color: var(--accent-fg);
@@ -646,8 +672,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-action.pin { right: 4px; }
 .session-action.archive { right: 28px; }
 .session-action.more { right: 52px; }
-/* 已归档的会话只有「…」，贴右边放，不要空出另外两个按钮的位置 */
-.session-wrap.archived .session-action.more { right: 4px; }
+/* 已归档会话和搜索结果只有「…」一个按钮，贴右边放，不要空出另外两个按钮的位置 */
+.session-wrap.archived .session-action.more,
+.session-wrap.search-hit .session-action.more { right: 4px; }
 /* 置顶会话的图钉常显（鼠标移开也不消失），右侧给它留一格 */
 .session-wrap.pinned .session-action.pin { opacity: 1; }
 .session-wrap.pinned .session-item { padding-right: 28px; }
@@ -655,8 +682,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap:hover .session-action { opacity: 1; }
 .session-wrap:hover .session-item { padding-right: 76px; }
 .session-wrap:hover .session-item .m { display: none; }
-/* 已归档的行只有一个「…」，只需要让出一格 */
-.session-wrap:hover.archived .session-item { padding-right: 28px; }
+/* 已归档行和搜索结果只有一个「…」，只需要让出一格 */
+.session-wrap:hover.archived .session-item,
+.session-wrap.search-hit:hover .session-item { padding-right: 28px; }
 /* 正在跑的会话不给操作按钮（包括「…」），也就不需要腾地方，时间戳保持可见 */
 .session-wrap.running .session-action { opacity: 0; pointer-events: none; }
 .session-wrap.running .session-item,
@@ -671,6 +699,10 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap.archived .session-item { opacity: .6; }
 .session-wrap.archived .session-item:hover,
 .session-wrap.archived .session-item.active { opacity: 1; }
+/* 操作按钮是 .session-item 的兄弟节点：只悬停「…」时上面的 :hover 不成立，
+   整行仍停 60% 透明，搜索结果里 12px 的正文会比标题更先糊掉。
+   只对搜索结果补一条，普通归档列表的观感不动。 */
+.session-wrap.archived.search-hit:hover .session-item { opacity: 1; }
 
 /* 已激活且非运行中：操作图标和别的行一样只在悬停时出现，
    但前景色要用反相色，压在选中底上才看得清。 */
@@ -684,7 +716,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .session-wrap:focus-within:not(.running) .session-action { opacity: 1; }
 .session-wrap:focus-within:not(.running) .session-item { padding-right: 76px; }
 .session-wrap:focus-within:not(.running) .session-item .m { display: none; }
-.session-wrap.archived:focus-within:not(.running) .session-item { padding-right: 28px; }
+.session-wrap.archived:focus-within:not(.running) .session-item,
+.session-wrap.search-hit:focus-within:not(.running) .session-item { padding-right: 28px; }
 /* 悬停/焦点必须写在选中前景规则之后，并覆盖 pin.on 与 :has(...) 更高优先级，
    否则已选中行会保持 --text-selected（浅色模式为白字），黄底上看不清。 */
 .session-action:hover,
@@ -713,7 +746,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .session-action { opacity: 1; }
   .session-item { padding-right: 76px; }
   .session-item .m { display: none; }
-  .session-wrap.archived .session-item { padding-right: 28px; }
+  .session-wrap.archived .session-item,
+  .session-wrap.search-hit .session-item { padding-right: 28px; }
   .session-wrap.running .session-action { opacity: 0; pointer-events: none; }
   .session-wrap.running .session-item { padding-right: 10px; }
   .session-wrap.running.pinned .session-item { padding-right: 28px; }
