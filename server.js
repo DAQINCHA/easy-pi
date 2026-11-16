@@ -469,7 +469,14 @@ function wire(bridge) {
     }
     if (record.type === "agent_settled") {
       bridge.streaming = false;
+      bridge.pendingUi.clear();
       // 用户主动停止（aborted）不算出错。
+      setRunning(bridge, false, true, Boolean(bridge.hadError && !record.aborted));
+    }
+    // agent_end 是每轮结束的兜底：万一 agent_settled 没到，也不能一直算「运行中」。
+    // willRetry 为 true 表示 pi 正在自动重试，这时不能提前清。
+    if (record.type === "agent_end" && record.willRetry !== true) {
+      bridge.streaming = false;
       setRunning(bridge, false, true, Boolean(bridge.hadError && !record.aborted));
     }
 
@@ -496,6 +503,8 @@ function wire(bridge) {
 
   bridge.on("exit", ({ code, signal, intentional }) => {
     bridge.streaming = false;
+    // 进程没了，确认弹窗也不可能再被应答，留着只会让会话一直被算成「忙」。
+    bridge.pendingUi.clear();
     // 非预期退出（进程崩溃等）也算会话异常终止；主动回收 / 删除会话不算。
     setRunning(bridge, false, false, intentional ? undefined : true);
     broadcast(
@@ -1667,7 +1676,16 @@ async function handleApi(req, res, url) {
   if (path === "/api/abort") {
     const bridge = bridgeFor(body.key);
     const response = await bridge.send({ type: "abort" }, 180000);
-    return json(res, 200, { success: response.success, error: response.error || null });
+    if (!response.success) {
+      return json(res, 400, { error: response.error || "abort failed" });
+    }
+    // 本地幂等收敛：abort 已生效就先放开运行态，不等 agent_settled / agent_end。
+    // 后续真正的 agent_settled 再执行一遍无副作用；清掉失效的确认弹窗记录，
+    // 否则它会一直被算成「会话忙」。
+    bridge.streaming = false;
+    bridge.pendingUi.clear();
+    setRunning(bridge, false, true, false);
+    return json(res, 200, { success: true, error: null });
   }
 
   if (path === "/api/ui") {

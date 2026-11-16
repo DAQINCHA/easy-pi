@@ -3990,6 +3990,16 @@ async function abortRun() {
   try {
     await api("/api/abort", { key: state.key });
     toast("已请求停止");
+    // 先清掉本地「等待确认」，再按 pi 的真实 isStreaming 核对一次：
+    // 即使 agent_settled 事件漏发，界面也不会永远停在运行中。只核对这一次，不轮询。
+    dispatchTask({ type: "__ui_resolved" });
+    const seq = nextSessionsSeq();
+    try {
+      const snapshot = await api("/api/session/snapshot", { key: state.key });
+      applySnapshot(snapshot, seq);
+    } catch {
+      /* 停止已经生效，核对失败不用再弹一次错误 */
+    }
   } catch (error) {
     toast("停止失败：" + error.message, "error");
   }
