@@ -20,6 +20,7 @@ const el = {
   railTip: $("railTip"),
   sessionList: $("sessionList"),
   search: $("sessionSearch"),
+  searchClear: $("searchClear"),
   newChat: $("newChatBtn"),
   brand: $("brandHome"),
   workspaceChip: $("workspaceChip"),
@@ -603,6 +604,13 @@ function clearSessionSearch() {
   state.search = { query: "", results: null, scanned: 0, total: 0, truncated: false, loading: false, error: "" };
 }
 
+function syncSearchClear() {
+  const hasValue = Boolean(el.search && el.search.value);
+  const box = el.search && el.search.parentElement;
+  if (box) box.classList.toggle("has-value", hasValue);
+  if (el.searchClear) el.searchClear.hidden = !hasValue;
+}
+
 function scheduleSessionSearch(query) {
   const seq = ++state.searchSeq;
   if (state.searchTimer) clearTimeout(state.searchTimer);
@@ -1010,6 +1018,7 @@ async function resetToWorkspace(data) {
   state.turnSummaryOpen = false;
   state.filter = "";
   if (el.search) el.search.value = "";
+  syncSearchClear();
   clearSessionSearch();
   renderAttachments();
   renderThread();
@@ -5272,6 +5281,7 @@ function bindEvents() {
 
   el.search.addEventListener("input", () => {
     state.filter = el.search.value;
+    syncSearchClear();
     const query = state.filter.trim();
     if (!query) {
       clearSessionSearch();
@@ -5281,6 +5291,17 @@ function bindEvents() {
     scheduleSessionSearch(query);
     renderSessions();
   });
+
+  if (el.searchClear) {
+    el.searchClear.addEventListener("click", () => {
+      el.search.value = "";
+      state.filter = "";
+      syncSearchClear();
+      clearSessionSearch();
+      renderSessions();
+      el.search.focus();
+    });
+  }
 
   el.menuBtn.addEventListener("click", toggleSidebar);
   el.scrim.addEventListener("click", () => {
@@ -5699,6 +5720,7 @@ function bindSessionAlign() {
 
 async function boot() {
   bindEvents();
+  syncSearchClear();
   registerServiceWorker();
   initSidebarResizer();
 

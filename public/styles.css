@@ -418,6 +418,31 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   transition: opacity .16s var(--ease);
 }
 .search:hover kbd { opacity: 1; }
+/* 有输入时 ⌘F 让位给清除按钮：按钮是真按钮，可以点也可以用 Tab 聚焦。 */
+.search.has-value kbd,
+.search.has-value:hover kbd { opacity: 0; }
+.search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color .16s var(--ease), background .16s var(--ease);
+}
+.search-clear svg { width: 13px; height: 13px; color: inherit; }
+.search-clear:hover,
+.search-clear:focus-visible {
+  color: var(--accent-fg);
+  background: var(--bg-hover);
+}
 
 .search-error { color: var(--red); }
 .search-meta {
