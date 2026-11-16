@@ -4372,6 +4372,8 @@ async function applySavedDefaults() {
           state.model = result.data && result.data.id ? result.data : wanted;
           // 切模型会把思考强度重置成模型默认档，重新取一次可用档位
           state.thinkingLevels = await loadThinkingLevels();
+          // 快照里的上下文统计还是默认模型的（比如 128k），切完模型重新拉一次
+          await refreshStats();
         }
       } catch {
         /* 模型不可用就保持默认 */
@@ -4410,6 +4412,8 @@ async function selectModel(model) {
     state.model = result.data && result.data.id ? result.data : model;
     writeModelPref(state.model);
     state.thinkingLevels = await loadThinkingLevels();
+    // 上下文统计按新模型重新拉取，不刷的话还挂着旧模型的窗口大小
+    await refreshStats();
     updateChips();
     toast("已切换到 " + (state.model.name || state.model.id));
   } catch (error) {
