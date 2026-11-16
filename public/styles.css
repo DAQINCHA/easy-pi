@@ -819,25 +819,25 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .icon-btn.on { background: var(--accent); color: var(--accent-fg); }
 .icon-btn.on:hover { background: var(--accent); color: var(--accent-fg); }
 .icon-btn svg { width: 17px; height: 17px; }
-#themeBtn svg { width: 20px; height: 20px; }
 
-/* 通知铃：静止时透明底、无额外框；开启只用实心铃，关闭为斜杠空心，激活不要黄底。
-   悬停与其他图标按钮一致（柠黄底+黑前景），焦点走全站 :focus-visible，不另造。 */
-#notifyBtn {
+/* 顶栏「…」：形状和侧栏会话行右侧的 .session-action.more 一致（同一个图标、
+   同一个圆角来源），但命中区和对比度按顶栏单独放大：30×30、静止就用 --text-2，
+   悬停/展开时铺 --bg-hover + --accent-fg（这对配色过 AAA）。 */
+.topbar-more {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  color: var(--text-2);
   background: transparent;
-  border: 0;
-  color: var(--text-3);
+  flex: none;
+  transition: background .15s var(--ease), color .15s var(--ease);
 }
-#notifyBtn .notify-icon-on { display: none; }
-#notifyBtn .notify-icon-off { display: block; }
-#notifyBtn.on {
-  background: transparent;
-  color: var(--text-1);
-}
-#notifyBtn.on .notify-icon-on { display: block; fill: currentColor; }
-#notifyBtn.on .notify-icon-off { display: none; }
-#notifyBtn:hover,
-#notifyBtn.on:hover {
+.topbar-more svg { width: 18px; height: 18px; }
+.topbar-more:hover,
+.topbar-more:focus-visible,
+.topbar-more[aria-expanded="true"] {
   background: var(--bg-hover);
   color: var(--accent-fg);
 }
@@ -1903,7 +1903,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   position: absolute;
   min-width: 232px;
   max-width: min(360px, calc(100vw - 16px));
-  max-height: 380px;
+  max-height: min(620px, calc(100dvh - 20px));
   overflow-y: auto;
   padding: 5px;
   border-radius: var(--radius);
@@ -3279,7 +3279,8 @@ html[data-skin="mint"] .session-item.active {
 }
 html[data-skin="mint"] .session-item.active .t { color: var(--clay-peach-ink); }
 html[data-skin="mint"] .session-item.active .m { color: #7a5c4e; }
-html[data-skin="mint"] .session-action { border-radius: 50%; }
+html[data-skin="mint"] .session-action,
+html[data-skin="mint"] .topbar-more { border-radius: 50%; }
 
 html[data-skin="mint"] .icon-btn { border-radius: 50%; }
 
@@ -3645,7 +3646,8 @@ html[data-skin="aurora"] .session-item.active {
 }
 html[data-skin="aurora"] .session-item.active .t { color: var(--text-selected); }
 html[data-skin="aurora"] .session-item.active .m { color: var(--text-selected-muted); }
-html[data-skin="aurora"] .session-action { border-radius: 8px; }
+html[data-skin="aurora"] .session-action,
+html[data-skin="aurora"] .topbar-more { border-radius: 8px; }
 
 /* 消息：玻璃气泡 + 细边，助手正文不另起卡片 */
 html[data-skin="aurora"] .bubble {

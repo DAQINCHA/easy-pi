@@ -24,11 +24,10 @@ const el = {
   brand: $("brandHome"),
   workspaceChip: $("workspaceChip"),
   workspaceName: $("workspaceName"),
-  themeBtn: $("themeBtn"),
   menuBtn: $("menuBtn"),
   title: $("sessionTitle"),
   brandVersion: $("brandVersion"),
-  notifyBtn: $("notifyBtn"),
+  settingsBtn: $("settingsBtn"),
   thread: $("thread"),
   messages: $("messages"),
   empty: $("emptyState"),
@@ -4200,6 +4199,9 @@ function chooseSlash() {
 /* ------------------------------------------------------------------ */
 
 function closeMenu() {
+  if (state.menuAnchor && state.menuAnchor.getAttribute("aria-haspopup") === "menu") {
+    state.menuAnchor.setAttribute("aria-expanded", "false");
+  }
   el.menuLayer.hidden = true;
   el.menuLayer.innerHTML = "";
   el.menuLayer.onclick = null;
@@ -4211,6 +4213,9 @@ function openMenu(anchor, items, options) {
   const opts = options || {};
   closeMenu();
   state.menuAnchor = anchor;
+  if (anchor && anchor.getAttribute("aria-haspopup") === "menu") {
+    anchor.setAttribute("aria-expanded", "true");
+  }
   el.menuLayer.hidden = false;
   const menu = document.createElement("div");
   menu.className = "menu" + (opts.className ? " " + opts.className : "");
@@ -4611,32 +4616,13 @@ async function setPinned(file, pinned) {
   }
 }
 
-function notifyBtnLabel(on) {
-  if (on) return "完成时通知：开";
-  if (!readNotifyPref()) return "完成时通知：关";
+function notifyStatusText(on) {
+  if (on) return "开";
+  if (!readNotifyPref()) return "关";
   const permission = notificationPermissionState();
-  if (permission === "unsupported") return "完成时通知：关（当前浏览器不支持）";
-  if (permission === "denied") return "完成时通知：关（权限已拒绝）";
-  return "完成时通知：关（尚未授权）";
-}
-
-function updateNotifyBtn() {
-  if (!el.notifyBtn) return;
-  const on = notifyEnabled();
-  const label = notifyBtnLabel(on);
-  el.notifyBtn.classList.toggle("on", on);
-  el.notifyBtn.title = label;
-  el.notifyBtn.setAttribute("aria-label", label);
-  el.notifyBtn.setAttribute("aria-pressed", on ? "true" : "false");
-}
-
-function watchNotifyPermission() {
-  if (!navigator.permissions || typeof navigator.permissions.query !== "function") return;
-  Promise.resolve(navigator.permissions.query({ name: "notifications" }))
-    .then((status) => {
-      if (status) status.onchange = () => updateNotifyBtn();
-    })
-    .catch(() => {});
+  if (permission === "unsupported") return "关（当前浏览器不支持）";
+  if (permission === "denied") return "关（权限已拒绝）";
+  return "关（尚未授权）";
 }
 
 /* ------------------------------------------------------------------ */
@@ -5017,10 +5003,6 @@ function applyTheme(mode) {
   const resolved = resolvedTheme(next);
   document.documentElement.dataset.theme = resolved;
   document.documentElement.dataset.mode = next;
-  if (el.themeBtn) {
-    el.themeBtn.title = "外观 · " + THEME_LABELS[next];
-    el.themeBtn.setAttribute("aria-label", "打开外观菜单，选择明暗和皮肤");
-  }
   try {
     localStorage.setItem("piwebui.theme", next);
   } catch {
@@ -5065,9 +5047,24 @@ function applySkin(id) {
   }
 }
 
-function openAppearanceMenu(anchor) {
+function openSettingsMenu(anchor) {
+  // 同一个按钮再点一次就收起：菜单已经开在这个锚点上时直接关掉。
+  if (!el.menuLayer.hidden && state.menuAnchor === anchor) {
+    closeMenu();
+    return;
+  }
   const mode = themePreference(document.documentElement.dataset.mode);
+  const notifyOn = notifyEnabled();
   openMenu(anchor, [
+    { labelOnly: true, label: "通知" },
+    {
+      icon: notifyOn ? "bell" : "bell-off",
+      label: "完成时通知",
+      sub: notifyStatusText(notifyOn),
+      active: notifyOn,
+      onClick: () => void toggleNotify(),
+    },
+    { sep: true },
     { labelOnly: true, label: "明暗" },
     { icon: "sun", label: THEME_LABELS.light, active: mode === "light", onClick: () => applyTheme("light") },
     { icon: "moon", label: THEME_LABELS.dark, active: mode === "dark", onClick: () => applyTheme("dark") },
@@ -5292,10 +5289,7 @@ function bindEvents() {
     syncNavToggle();
   });
 
-  el.themeBtn.addEventListener("click", () => openAppearanceMenu(el.themeBtn));
-  el.notifyBtn.addEventListener("click", () => {
-    toggleNotify().finally(updateNotifyBtn);
-  });
+  el.settingsBtn.addEventListener("click", () => openSettingsMenu(el.settingsBtn));
   el.workspaceChip.addEventListener("click", () => (state.needsWorkspace ? openWorkspacePicker() : openWorkspaceMenu()));
   el.emptyPickBtn.addEventListener("click", openWorkspacePicker);
   el.modelChip.addEventListener("click", () => openModelMenu(el.modelChip));
@@ -5584,6 +5578,12 @@ function bindEvents() {
       focusSessionSearch();
       return;
     }
+    // ⌘, / Ctrl+, 打开设置菜单。必须 preventDefault，否则浏览器会先打开自己的首选项页。
+    if (meta && event.key === ",") {
+      event.preventDefault();
+      openSettingsMenu(el.settingsBtn);
+      return;
+    }
     if (event.key === "Escape") {
       if (!el.modalLayer.hidden) return;
       if (!el.menuLayer.hidden) {
@@ -5724,8 +5724,6 @@ async function boot() {
   syncNavToggle();
   autosize();
   updateSendState();
-  updateNotifyBtn();
-  watchNotifyPermission();
   bindSessionListScrollbar();
   bindThreadScrollbar();
   bindSessionAlign();

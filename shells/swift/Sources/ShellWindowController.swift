@@ -143,10 +143,16 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
           function hotRects(collapsed) {
             var nodes = [
               document.getElementById('menuBtn'),
-              document.getElementById('notifyBtn'),
-              document.getElementById('themeBtn'),
               document.getElementById('sidebarResizer')
             ];
+            // 顶栏右侧按钮（现在是「…」设置菜单）：先取具体 id，再把 .topbar-right 里
+            // 其余按钮一并收进来，以后加顶栏按钮不用改壳。
+            var settings = document.getElementById('settingsBtn');
+            if (settings) nodes.push(settings);
+            var extras = document.querySelectorAll('.topbar-right button');
+            for (var j = 0; j < extras.length; j++) {
+              if (nodes.indexOf(extras[j]) === -1) nodes.push(extras[j]);
+            }
             if (!collapsed) nodes.push(document.querySelector('.sidebar-head .brand'));
             var out = [];
             for (var i = 0; i < nodes.length; i++) {
