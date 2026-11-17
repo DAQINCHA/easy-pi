@@ -1325,9 +1325,8 @@ function toolImages(result) {
   return images;
 }
 
-function toolImagesHtml(result) {
-  const images = toolImages(result);
-  if (!images.length) return "";
+function imagesHtml(images) {
+  if (!images || !images.length) return "";
   let html = '<div class="tool-images">';
   for (const image of images) {
     html +=
@@ -1335,6 +1334,34 @@ function toolImagesHtml(result) {
       '" alt="工具返回的图片" loading="lazy" decoding="async">';
   }
   return html + "</div>";
+}
+
+function toolImagesHtml(result) {
+  return imagesHtml(toolImages(result));
+}
+
+// 已并进工具卡片的图片，也直接放到本轮最后一条有正文的助手消息里。
+// 这样生成的图在回复中就能看到，不用展开折叠的过程卡片。
+function collectTurnImages(turn) {
+  const callIds = new Set();
+  for (const part of turn.parts) {
+    const message = part.message;
+    if (!message || message.role !== "assistant") continue;
+    for (const block of contentBlocks(message)) {
+      if (block && block.type === "toolCall" && block.id) callIds.add(block.id);
+    }
+  }
+  const images = [];
+  for (const part of turn.parts) {
+    const message = part.message;
+    if (!message || message.role !== "toolResult") continue;
+    if (!message.toolCallId || !callIds.has(message.toolCallId)) continue;
+    for (const image of toolImages({ content: message.content })) {
+      images.push(image);
+      if (images.length >= TOOL_IMAGE_LIMIT) return images;
+    }
+  }
+  return images;
 }
 
 function toolMeta(call) {
@@ -1867,6 +1894,7 @@ function turnNodes(turn, ctx) {
   }
 
   const segments = turnSegments(turn, ctx.liveBlocks);
+  const replyImages = collectTurnImages(turn);
   // 只有「整轮最后一段仍是过程组」时它才是活跃过程；后面已经出现正文，就说明这组步骤结束了。
   const lastSegment = segments[segments.length - 1];
   const activeProc = ctx.processRunning && lastSegment && lastSegment.type === "proc" ? lastSegment.key : null;
@@ -1890,6 +1918,15 @@ function turnNodes(turn, ctx) {
   });
   const hasText = segments.some((segment) => segment.type === "text" && String(segment.block.text || "").trim());
 
+  // 图片挂在最后一段有正文的助手消息上；没有正文时等本轮结束再挂到最后一块。
+  let imageAt = -1;
+  chunks.forEach((chunk, position) => {
+    if (chunk.segments && chunk.segments.some((segment) => segment.type === "text" && String(segment.block.text || "").trim())) {
+      imageAt = position;
+    }
+  });
+  if (imageAt < 0 && !ctx.streaming && chunks.length) imageAt = chunks.length - 1;
+
   chunks.forEach((chunk, position) => {
     const node = document.createElement("div");
     node.className = "msg assistant" + (ctx.refresh ? " refresh" : "");
@@ -1904,6 +1941,7 @@ function turnNodes(turn, ctx) {
         activeProc: position === chunks.length - 1 ? activeProc : null,
       });
     }
+    if (replyImages.length && position === imageAt) html += imagesHtml(replyImages);
     if (position === footAt) {
       // 纯过程的一轮没有正文，就不放一个点了没反应的「复制」。
       let footHtml = hasText ? '<button class="action" type="button" data-act="copy-bot" aria-label="复制内容">' + ICON("copy") + "复制内容</button>" : "";
