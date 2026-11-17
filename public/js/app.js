@@ -2531,7 +2531,7 @@ function addNotice(text) {
 /* session lifecycle                                                   */
 /* ------------------------------------------------------------------ */
 
-function applySnapshot(snapshot, seq = nextSessionsSeq()) {
+function applySnapshot(snapshot, seq = nextSessionsSeq(), options = {}) {
   const switched = state.key !== snapshot.key;
   const workspaceChanged = Boolean(snapshot.workspace) && Boolean(state.workspace) && snapshot.workspace !== state.workspace;
   const sameSession = !switched && state.file === (snapshot.sessionFile || null);
@@ -2580,12 +2580,14 @@ function applySnapshot(snapshot, seq = nextSessionsSeq()) {
   state.attachOpen.clear();
   if (switched) {
     clearOptimistic();
-    for (const item of state.attachments) {
-      if (item && item.abort) item.abort.abort();
+    if (options.resetComposer) {
+      for (const item of state.attachments) {
+        if (item && item.abort) item.abort.abort();
+      }
+      state.attachments = [];
+      renderAttachments();
     }
-    state.attachments = [];
     state.pendingEdit = null;
-    renderAttachments();
     renderPendingEditHint();
     dispatchTask({ type: "__session", key: snapshot.key });
     state.turnFiles = new Map();
@@ -2638,14 +2640,14 @@ async function openSession(file) {
   markSeen(true);
 }
 
-async function newSession() {
+async function newSession(options = {}) {
   if (state.needsWorkspace) {
     openWorkspacePicker();
     return;
   }
   const seq = nextSessionsSeq();
   const snapshot = await api("/api/session/new", {});
-  applySnapshot(snapshot, seq);
+  applySnapshot(snapshot, seq, options);
   connectStream();
   markSeen(true);
   el.input.focus();
@@ -5258,10 +5260,10 @@ function initSidebarResizer() {
 }
 
 function bindEvents() {
-  el.newChat.addEventListener("click", () => newSession().catch((error) => toast("新建失败：" + error.message, "error")));
+  el.newChat.addEventListener("click", () => newSession({ resetComposer: true }).catch((error) => toast("新建失败：" + error.message, "error")));
   el.brand.addEventListener("click", (event) => {
     event.preventDefault();
-    newSession().catch(() => {});
+    newSession({ resetComposer: true }).catch(() => {});
   });
 
   el.sessionList.addEventListener("click", (event) => {
@@ -5646,7 +5648,7 @@ function bindEvents() {
     const meta = event.metaKey || event.ctrlKey;
     if (meta && event.key.toLowerCase() === "n") {
       event.preventDefault();
-      newSession().catch(() => {});
+      newSession({ resetComposer: true }).catch(() => {});
       return;
     }
     if (meta && event.key.toLowerCase() === "b") {
