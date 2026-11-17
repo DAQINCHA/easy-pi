@@ -128,8 +128,8 @@ const state = {
   searchSeq: 0,
   searchTimer: 0,
   searchAbort: null,
-  // 侧栏显示方式：flat = 平铺（默认，保持旧布局），grouped = 按置顶/对话/已归档分组。
-  sessionLayout: "flat",
+  // 侧栏显示方式：flat = 平铺，grouped = 按置顶/对话/已归档分组（默认）。
+  sessionLayout: "grouped",
   pinnedOpen: true,
   chatsOpen: true,
   archivedOpen: false,
@@ -5207,12 +5207,12 @@ function applySkin(id) {
 
 const SESSION_LAYOUT_KEY = "piwebui.sessionLayout";
 
-// 默认平铺：老用户没存过偏好时行为保持不变。
+// 默认分组：没有存过偏好的用户首次使用就是分组；存过平铺/分组的一律照旧。
 function currentSessionLayout() {
   try {
-    return localStorage.getItem(SESSION_LAYOUT_KEY) === "grouped" ? "grouped" : "flat";
+    return localStorage.getItem(SESSION_LAYOUT_KEY) === "flat" ? "flat" : "grouped";
   } catch {
-    return "flat";
+    return "grouped";
   }
 }
 
@@ -5246,14 +5246,14 @@ function openSettingsMenu(anchor) {
       onClick: () => void toggleNotify(),
     },
     { sep: true },
+    { labelOnly: true, label: "会话栏" },
+    { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },
+    { label: "平铺", active: layout === "flat", onClick: () => applySessionLayout("flat") },
+    { sep: true },
     { labelOnly: true, label: "明暗" },
     { icon: "sun", label: THEME_LABELS.light, active: mode === "light", onClick: () => applyTheme("light") },
     { icon: "moon", label: THEME_LABELS.dark, active: mode === "dark", onClick: () => applyTheme("dark") },
     { icon: "monitor", label: THEME_LABELS.system, active: mode === "system", onClick: () => applyTheme("system") },
-    { sep: true },
-    { labelOnly: true, label: "会话栏" },
-    { label: "平铺", active: layout === "flat", onClick: () => applySessionLayout("flat") },
-    { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },
     { sep: true },
     { labelOnly: true, label: "皮肤" },
     ...SKINS.map((skin) => ({
