@@ -756,7 +756,7 @@ function renderSessions() {
 
   if (archived.length) {
     const open = state.archivedOpen || Boolean(query);
-    html += groupToggleHtml("已归档", archived.length, open, "data-toggle-archive");
+    html += groupToggleHtml("归档", archived.length, open, "data-toggle-archive");
     if (open) {
       for (const session of archived) html += sessionItemHtml(session);
     }
