@@ -1302,6 +1302,41 @@ function resultOutput(result) {
   return "";
 }
 
+// 工具结果里的图片块只认 data / mimeType 两个字段：白名单图片类型、base64 字符集、
+// 单张体积和总张数都设上限，任何一项不合规就整块跳过，文字部分仍退回 resultOutput 的 "[图片]"。
+const TOOL_IMAGE_LIMIT = 4;
+const TOOL_IMAGE_MAX_CHARS = 8 * 1024 * 1024;
+const TOOL_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
+const TOOL_IMAGE_BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+
+function toolImages(result) {
+  const content = result && result.content;
+  if (!Array.isArray(content)) return [];
+  const images = [];
+  for (const block of content) {
+    if (!block || block.type !== "image") continue;
+    const data = typeof block.data === "string" ? block.data : "";
+    const mimeType = typeof block.mimeType === "string" ? block.mimeType.trim().toLowerCase() : "";
+    if (!TOOL_IMAGE_TYPES.includes(mimeType)) continue;
+    if (!data || data.length > TOOL_IMAGE_MAX_CHARS || !TOOL_IMAGE_BASE64_RE.test(data)) continue;
+    images.push({ data, mimeType });
+    if (images.length >= TOOL_IMAGE_LIMIT) break;
+  }
+  return images;
+}
+
+function toolImagesHtml(result) {
+  const images = toolImages(result);
+  if (!images.length) return "";
+  let html = '<div class="tool-images">';
+  for (const image of images) {
+    html +=
+      '<img src="data:' + escapeHtml(image.mimeType) + ";base64," + escapeHtml(image.data) +
+      '" alt="工具返回的图片" loading="lazy" decoding="async">';
+  }
+  return html + "</div>";
+}
+
 function toolMeta(call) {
   const name = String(call.name || "tool");
   const args = call.arguments || {};
@@ -1346,34 +1381,35 @@ function diffHtml(args) {
 function toolBodyHtml(call, result) {
   const args = call.arguments || {};
   const output = resultOutput(result);
+  const images = toolImagesHtml(result);
   const running = !result || result.partial;
   if (call.name === "bash") {
     const body = output || (running ? "正在运行…" : "（没有输出）");
     return (
       '<div class="tool-cmd">' + escapeHtml(args.command || "") + "</div>" +
-      '<pre class="term' + (result && result.isError ? " is-error" : "") + '">' + escapeHtml(truncate(body, 14000)) + "</pre>"
+      '<pre class="term' + (result && result.isError ? " is-error" : "") + '">' + escapeHtml(truncate(body, 14000)) + "</pre>" + images
     );
   }
   if (call.name === "edit") {
     const diff = diffHtml(args);
-    if (diff) return '<div class="diff-file">' + escapeHtml(args.path || "") + "</div>" + diff;
-    return '<pre class="term">' + escapeHtml(truncate(output || JSON.stringify(args, null, 2), 14000)) + "</pre>";
+    if (diff) return '<div class="diff-file">' + escapeHtml(args.path || "") + "</div>" + diff + images;
+    return '<pre class="term">' + escapeHtml(truncate(output || JSON.stringify(args, null, 2), 14000)) + "</pre>" + images;
   }
   if (call.name === "write") {
     const content = String(args.content || "");
     return (
       '<div class="diff-file">' + escapeHtml(args.path || "") + "</div>" +
-      '<pre class="term">' + escapeHtml(truncate(content || output, 14000)) + "</pre>"
+      '<pre class="term">' + escapeHtml(truncate(content || output, 14000)) + "</pre>" + images
     );
   }
   if (call.name === "read") {
     return (
       '<div class="diff-file">' + escapeHtml(args.path || "") + "</div>" +
-      '<pre class="term">' + escapeHtml(truncate(output || "读取中…", 14000)) + "</pre>"
+      '<pre class="term">' + escapeHtml(truncate(output || "读取中…", 14000)) + "</pre>" + images
     );
   }
   const body = output || (running ? "运行中…" : "（没有输出）");
-  return '<pre class="term' + (result && result.isError ? " is-error" : "") + '">' + escapeHtml(truncate(body, 14000)) + "</pre>";
+  return '<pre class="term' + (result && result.isError ? " is-error" : "") + '">' + escapeHtml(truncate(body, 14000)) + "</pre>" + images;
 }
 
 function toolCardHtml(call, result) {
