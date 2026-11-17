@@ -100,7 +100,7 @@ describe("completion notification settings", () => {
     assert.doesNotMatch(menu, /toggleNotify/);
   });
 
-  it("ships hollow bell symbols and no shirt icon", () => {
+  it("ships hollow bell and shirt symbols", () => {
     const bell = HTML.match(/<symbol id="i-bell"[\s\S]*?<\/symbol>/);
     const bellOff = HTML.match(/<symbol id="i-bell-off"[\s\S]*?<\/symbol>/);
     assert.ok(bell, "missing i-bell symbol");
@@ -112,7 +112,6 @@ describe("completion notification settings", () => {
       assert.doesNotMatch(symbol, /fill\s*=\s*["']?(?:currentColor|#[0-9a-f]{3,8})/i);
     }
 
-    assert.doesNotMatch(HTML, /i-shirt/);
-    assert.doesNotMatch(JS, /i-shirt/);
+    assert.ok(HTML.match(/<symbol id="i-shirt"[\s\S]*?<\/symbol>/), "missing i-shirt symbol");
   });
 });

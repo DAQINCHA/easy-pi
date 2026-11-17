@@ -4390,7 +4390,12 @@ function openMenu(anchor, items, options) {
     if (item.labelOnly) {
       const label = document.createElement("div");
       label.className = "menu-label";
-      label.textContent = item.label;
+      if (item.icon) {
+        label.innerHTML = '<span class="mi-ico">' + ICON(item.icon) + "</span>" +
+          '<span class="menu-label-text">' + escapeHtml(item.label) + "</span>";
+      } else {
+        label.textContent = item.label;
+      }
       menu.appendChild(label);
       continue;
     }
@@ -5232,20 +5237,20 @@ function openSettingsMenu(anchor) {
   const notifyOn = notifyEnabled();
   const layout = currentSessionLayout();
   openMenu(anchor, [
-    { labelOnly: true, label: "通知" },
-    { icon: "bell", label: "开", active: notifyOn, onClick: () => void setNotifyPref(true) },
-    { icon: "bell-off", label: "关", active: !notifyOn, onClick: () => void setNotifyPref(false) },
+    { labelOnly: true, label: "通知", icon: notifyOn ? "bell" : "bell-off" },
+    { label: "开", active: notifyOn, onClick: () => void setNotifyPref(true) },
+    { label: "关", active: !notifyOn, onClick: () => void setNotifyPref(false) },
     { sep: true },
-    { labelOnly: true, label: "会话栏" },
+    { labelOnly: true, label: "会话栏", icon: "bubble" },
     { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },
     { label: "平铺", active: layout === "flat", onClick: () => applySessionLayout("flat") },
     { sep: true },
-    { labelOnly: true, label: "明暗" },
-    { icon: "sun", label: THEME_LABELS.light, active: mode === "light", onClick: () => applyTheme("light") },
-    { icon: "moon", label: THEME_LABELS.dark, active: mode === "dark", onClick: () => applyTheme("dark") },
-    { icon: "monitor", label: THEME_LABELS.system, active: mode === "system", onClick: () => applyTheme("system") },
+    { labelOnly: true, label: "明暗", icon: mode === "light" ? "sun" : mode === "dark" ? "moon" : "monitor" },
+    { label: THEME_LABELS.light, active: mode === "light", onClick: () => applyTheme("light") },
+    { label: THEME_LABELS.dark, active: mode === "dark", onClick: () => applyTheme("dark") },
+    { label: THEME_LABELS.system, active: mode === "system", onClick: () => applyTheme("system") },
     { sep: true },
-    { labelOnly: true, label: "皮肤" },
+    { labelOnly: true, label: "皮肤", icon: "shirt" },
     ...SKINS.map((skin) => ({
       label: skin.label,
       active: currentSkin() === skin.id,

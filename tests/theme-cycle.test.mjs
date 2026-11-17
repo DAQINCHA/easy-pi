@@ -167,8 +167,8 @@ describe("settings menu appearance controls", () => {
       /if \(meta && event\.key === ","\) \{\s*event\.preventDefault\(\);\s*openSettingsMenu\(el\.settingsBtn\);/,
     );
 
-    assert.doesNotMatch(JS, /themeBtn|openAppearanceMenu|i-shirt/);
-    assert.doesNotMatch(HTML, /themeBtn|openAppearanceMenu|i-shirt/);
+    assert.doesNotMatch(JS, /themeBtn|openAppearanceMenu/);
+    assert.doesNotMatch(HTML, /themeBtn|openAppearanceMenu/);
     assert.doesNotMatch(CSS, /#themeBtn|#notifyBtn/);
   });
 });
