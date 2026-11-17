@@ -178,13 +178,10 @@ export function resolveMarkdownFileHref(href) {
   return path;
 }
 
-function workspaceFileAnchor(label, path, originUrl) {
+function workspaceFileAnchor(label, path) {
   const href = "/api/file?path=" + encodeURIComponent(path) + "&mode=download";
-  // 原始的 file:// 地址留在锚点上，桌面外壳点链接时用它交给系统默认应用；
-  // 浏览器里没有外壳监听，这条属性不起作用，仍走站内预览。
-  const origin = originUrl ? ' data-ws-origin-url="' + escapeHtml(originUrl) + '"' : "";
   return (
-    '<a class="ws-file" href="' + escapeHtml(href) + '" data-ws-file="' + escapeHtml(path) + '"' + origin + ">" +
+    '<a class="ws-file" href="' + escapeHtml(href) + '" data-ws-file="' + escapeHtml(path) + '">' +
     escapeHtml(label) +
     "</a>"
   );
@@ -262,7 +259,7 @@ function inline(raw) {
 
   text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, url) => {
     const filePath = resolveMarkdownFileHref(url);
-    if (filePath) return keep(workspaceFileAnchor(label, filePath, /^file:/i.test(url) ? url : null));
+    if (filePath) return keep(workspaceFileAnchor(label, filePath));
     if (!safeUrl(url)) return label;
     return keep(
       '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label) + "</a>",
