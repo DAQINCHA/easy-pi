@@ -2000,14 +2000,14 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 }
 /* 只有右上角设置菜单的分类标题收紧间距、放大字号；其他菜单的 .menu-label 保持原样。 */
 .settings-menu .menu-label {
-  gap: 7px;
+  gap: 5px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;
-  color: var(--text-3);
+  color: var(--text-4);
 }
 /* 设置菜单分类标题的小图标比菜单项图标略小一点；其他菜单项 / 模型图标仍走 .mi-ico 的 15px。 */
-.settings-menu .menu-label .mi-ico svg { width: 14px; height: 14px; }
+.settings-menu .menu-label .mi-ico svg { width: 12px; height: 12px; }
 .menu-item {
   display: flex; align-items: center; gap: 9px;
   width: 100%;
