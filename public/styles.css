@@ -2000,7 +2000,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 }
 /* 只有右上角设置菜单的分类标题收紧间距、放大字号；其他菜单的 .menu-label 保持原样。 */
 .settings-menu .menu-label {
-  gap: 5px;
+  gap: 3px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0;

@@ -5241,7 +5241,7 @@ function openSettingsMenu(anchor) {
     { label: "开", active: notifyOn, onClick: () => void setNotifyPref(true) },
     { label: "关", active: !notifyOn, onClick: () => void setNotifyPref(false) },
     { sep: true },
-    { labelOnly: true, label: "会话栏", icon: "bubble" },
+    { labelOnly: true, label: "对话", icon: "bubble" },
     { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },
     { label: "平铺", active: layout === "flat", onClick: () => applySessionLayout("flat") },
     { sep: true },
