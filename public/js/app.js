@@ -2608,6 +2608,9 @@ function applySnapshot(snapshot, seq = nextSessionsSeq(), options = {}) {
   }
   // 刷新快照时不要抹掉正在显示的服务端队列；只有切会话或已经停下来才清空。
   if (switched || !state.streaming) clearQueued();
+  // 刷新页面后 pi 不会补发历史 queue_update，运行中的会话只能靠快照把排队区填回去。
+  // 放在 clearQueued() 之后；同一会话的普通 resync 不覆盖当前队列。
+  if (switched && state.streaming && snapshot.queue) applyQueueUpdate(snapshot.queue);
   state.toolResults.clear();
   state.toolLive.clear();
   state.toolOpen.clear();

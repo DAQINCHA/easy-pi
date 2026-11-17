@@ -446,6 +446,8 @@ function wire(bridge) {
   bridge.clients = new Set();
   bridge.pendingUi = new Map();
   bridge.queuedImages = new Map();
+  // 最近一次 queue_update 的队列状态。get_state 不返回队列，刷新页面只能靠快照补。
+  bridge.queue = { steering: [], followUp: [] };
   bridge.streaming = false;
   bridge.hadError = false;
 
@@ -487,6 +489,13 @@ function wire(bridge) {
     // 排队消息真正写进历史后，就不用再留着它的图片了。
     if (record.type === "message_end" && record.message?.role === "user") {
       bridge.queuedImages.delete(messageText(record.message));
+    }
+    // 只记录，不碰 pi 的真实队列；随快照返回给前端恢复排队区。
+    if (record.type === "queue_update") {
+      bridge.queue = {
+        steering: Array.isArray(record.steering) ? record.steering.filter((item) => typeof item === "string") : [],
+        followUp: Array.isArray(record.followUp) ? record.followUp.filter((item) => typeof item === "string") : [],
+      };
     }
     // pi emits this before the set_session_name response; invalidate here so a
     // refresh triggered by the event cannot read the previous list from cache.
@@ -676,6 +685,11 @@ async function snapshot(bridge) {
     // 只给前端 entryId + 纯文本，不带图片 / base64。
     forkMessages: (forks.data?.messages || []).map((item) => ({ entryId: item.entryId, text: item.text })),
     pendingUi: [...bridge.pendingUi.values()],
+    // 格式与 pi 的 queue_update 一致：两个字符串数组。
+    queue: {
+      steering: [...(bridge.queue?.steering || [])],
+      followUp: [...(bridge.queue?.followUp || [])],
+    },
     ...getSessions(),
   };
 }
