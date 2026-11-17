@@ -23,6 +23,8 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
     private var originalLightX: [UInt: CGFloat] = [:]
     private var trafficLightShift: CGFloat = 0
     private var destinations: [ObjectIdentifier: URL] = [:]
+    /// 当前载入的应用地址，导航白名单拿它比对 scheme/host/port。
+    private var appURL: URL?
 
     override init() {
         window = NSWindow(
@@ -334,6 +336,7 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
     // MARK: - 载入
 
     func load(_ url: URL) {
+        appURL = url
         webView.load(URLRequest(url: url))
     }
 
@@ -363,6 +366,21 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
         // 否则 WKWebView 会当成一次导航、什么都不发生。
         if navigationAction.shouldPerformDownload {
             decisionHandler(.download)
+            return
+        }
+
+        // 双保险：只放行跳回 pi 服务自身的导航，scheme（http/https）、host、port 都要和 appURL 一致。
+        // 拖文件到空白处时 WebKit 会拿 file:// 当主框架导航，这里连它一起拦掉，避免白屏顶掉界面。
+        // appURL 为 nil 理论上不会发生（load(_:) 总在 webView.load 之前赋值），也按拦截处理。
+        guard let appURL,
+              let url = navigationAction.request.url,
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              scheme == appURL.scheme?.lowercased(),
+              url.host == appURL.host,
+              url.port == appURL.port else {
+            NSLog("[easy-pi-shell] 已拦截跳出服务地址的导航：%@", navigationAction.request.url?.absoluteString ?? "")
+            decisionHandler(.cancel)
             return
         }
         decisionHandler(.allow)

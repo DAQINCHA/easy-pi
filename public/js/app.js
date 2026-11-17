@@ -5579,6 +5579,22 @@ function bindEvents() {
     if (event.dataTransfer && event.dataTransfer.files) addFiles(event.dataTransfer.files);
   });
 
+  // 兜底拦一道 document 级的拖放：拖文件到窗口空白处（不在 #composer 里）时，
+  // WebKit 默认会把本地文件当成一次主框架导航（file:// 跳转），把整个界面顶成白屏。
+  // 只有拖的是文件才 preventDefault，其他类型的拖放照常；#composer 的监听在冒泡路上
+  // 先执行、这里后执行，重复 preventDefault 没有副作用。
+  // 这里只拦默认行为，绝不收文件——收文件仍然只由 #composer 自己的 drop 负责。
+  document.addEventListener("dragover", (event) => {
+    if (event.dataTransfer && Array.from(event.dataTransfer.types).includes("Files")) {
+      event.preventDefault();
+    }
+  });
+  document.addEventListener("drop", (event) => {
+    if (event.dataTransfer && Array.from(event.dataTransfer.types).includes("Files")) {
+      event.preventDefault();
+    }
+  });
+
   document.addEventListener("paste", (event) => {
     if (document.activeElement !== el.input) return;
     const items = event.clipboardData ? Array.from(event.clipboardData.items) : [];
