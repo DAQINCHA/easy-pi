@@ -2006,7 +2006,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   letter-spacing: 0;
   color: var(--text-4);
 }
-/* 设置菜单分类标题的小图标比菜单项图标略小一点；其他菜单项 / 模型图标仍走 .mi-ico 的 15px。 */
+/* 设置菜单分类标题的图标与下方选项文字左对齐：容器收紧到图标本身，去掉 16px 容器居中带来的偏移。 */
+.settings-menu .menu-label .mi-ico { width: 12px; height: 12px; }
 .settings-menu .menu-label .mi-ico svg { width: 12px; height: 12px; }
 .menu-item {
   display: flex; align-items: center; gap: 9px;
