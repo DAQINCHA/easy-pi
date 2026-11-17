@@ -45,6 +45,7 @@ const el = {
   fileInput: $("fileInput"),
   sendBtn: $("sendBtn"),
   modelChip: $("modelChip"),
+  modelChipIcon: $("modelChipIcon"),
   modelChipText: $("modelChipText"),
   thinkChip: $("thinkChip"),
   thinkChipText: $("thinkChipText"),
@@ -150,6 +151,42 @@ const state = {
 };
 
 const ICON = (name) => '<svg aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+
+/* 模型关键词 -> 供应商图标。改这里就能加新厂商：按关键词匹配模型名/编号，
+ * 命中第一个就返回对应图标。mono 表示原图是单色（黑色），深色主题下要反相。
+ * 关键词不区分大小写；后面不紧跟字母：hy4、HY-Image 命中，hyperbolic 不命中。 */
+const MODEL_ICONS = [
+  { word: "glm", icon: "glm" },
+  { word: "kimi", icon: "kimi", mono: true },
+  { word: "deepseek", icon: "deepseek" },
+  { word: "qwen", icon: "qwen" },
+  { word: "minimax", icon: "minimax" },
+  { word: "hunyuan", icon: "hy" },
+  { word: "hy", icon: "hy" },
+  { word: "openai", icon: "openai", mono: true },
+  { word: "gpt", icon: "openai", mono: true },
+  { word: "grok", icon: "grok", mono: true },
+  { word: "xai", icon: "grok", mono: true },
+  { word: "gemini", icon: "gemini" },
+  { word: "claude", icon: "claude" },
+  { word: "anthropic", icon: "claude" },
+  { word: "xiaomi", icon: "xiaomi", mono: true },
+  { word: "mimo", icon: "xiaomi", mono: true },
+];
+
+function modelIcon(model) {
+  if (!model) return null;
+  const text = ((model.name || "") + " " + (model.id || "")).toLowerCase();
+  for (const rule of MODEL_ICONS) {
+    if (new RegExp(rule.word.toLowerCase() + "(?![a-z])", "i").test(text)) {
+      return { src: "/icons/models/" + rule.icon + ".svg", mono: !!rule.mono };
+    }
+  }
+  return null;
+}
+
+const modelIconHtml = (icon) =>
+  icon ? '<img src="' + icon.src + '" alt=""' + (icon.mono ? ' class="model-icon-mono"' : '') + '>' : "";
 
 // 与 server.js 的 readBody 上限保持一致：请求体按实际 JSON 字节数预检。
 const MAX_REQUEST_BYTES = 32 * 1024 * 1024;
@@ -1051,6 +1088,7 @@ function updateHeader() {
 
 function updateChips() {
   const modelName = state.model ? state.model.name || state.model.id : "模型";
+  el.modelChipIcon.innerHTML = modelIconHtml(modelIcon(state.model)) || ICON("spark");
   el.modelChipText.textContent = modelName;
   el.modelChip.title = state.model ? modelName + " · 点击切换模型" : "选择模型";
   el.thinkChipText.textContent = "思考 " + (state.thinkingLevel || "off");
@@ -4258,7 +4296,8 @@ function openMenu(anchor, items, options) {
     button.type = "button";
     button.className = "menu-item" + (item.active ? " active" : "") + (item.danger ? " danger" : "");
     let html = "";
-    if (item.icon) html += '<span class="mi-ico">' + ICON(item.icon) + "</span>";
+    if (item.img) html += '<span class="mi-ico">' + modelIconHtml(item.img) + "</span>";
+    else if (item.icon) html += '<span class="mi-ico">' + ICON(item.icon) + "</span>";
     html += '<span class="grow"><span class="mi-label">' + escapeHtml(item.label) + "</span>";
     if (item.sub) html += '<span class="sub">' + escapeHtml(item.sub) + "</span>";
     html += "</span>";
@@ -4303,6 +4342,7 @@ function openModelMenu(anchor) {
   for (const model of models) {
     items.push({
       label: model.name || model.id,
+      img: modelIcon(model),
       sub: (model.provider ? model.provider + " · " : "") + model.id + " · " + fmtTokens(model.contextWindow) + " ctx",
       active: state.model && state.model.id === model.id,
       onClick: () => selectModel(model),

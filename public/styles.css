@@ -2517,6 +2517,11 @@ body.resizing .sidebar { transition: none; }
 .think summary .chev svg { width: 13px; height: 13px; }
 .mi-ico { display: grid; place-items: center; width: 16px; height: 16px; color: var(--text-4); flex: none; }
 .mi-ico svg { width: 15px; height: 15px; }
+/* 模型供应商图标（静态 SVG，来自 magpie）。单色图在深色主题下反相才看得见。 */
+.chip-model-ico { display: grid; place-items: center; flex: none; }
+.chip-model-ico img { width: 13px; height: 13px; display: block; }
+.mi-ico img { width: 15px; height: 15px; display: block; }
+html[data-theme="dark"] .model-icon-mono { filter: invert(1); }
 .menu-item .grow { display: block; }
 .menu-item .mi-label { display: block; }
 .task-box {
