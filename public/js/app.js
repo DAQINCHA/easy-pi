@@ -5752,6 +5752,37 @@ function bindEvents() {
     }
   });
 
+  // 桌面外壳里点聊天链接：交给 macOS 默认浏览器打开，不在窗口里跳走。
+  // 只在 window.webkit.messageHandlers.shellOpen 存在时生效，普通浏览器整段跳过。
+  // 用 capture 阶段，赶在 el.messages 的 [data-ws-file] 预览处理器和 target=_blank 之前拦下。
+  const shellOpen = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.shellOpen;
+  if (shellOpen) {
+    document.addEventListener(
+      "click",
+      (event) => {
+        if (event.defaultPrevented || event.button !== 0) return;
+        const anchor = event.target && event.target.closest && event.target.closest("a[href]");
+        if (!anchor) return;
+        // Markdown 里的 [x](file:///…) 被改写成了站内预览链接，原始地址留在这个属性上。
+        const raw = anchor.getAttribute("data-ws-origin-url") || anchor.getAttribute("href") || "";
+        let url;
+        try {
+          url = new URL(raw, location.href);
+        } catch {
+          return;
+        }
+        const scheme = url.protocol.replace(":", "").toLowerCase();
+        // 站内 http(s)（文件预览、下载）保持原样，只有站外地址才交给系统浏览器。
+        const external = (scheme === "http" || scheme === "https") && url.origin !== location.origin;
+        if (scheme !== "file" && !external) return;
+        event.preventDefault();
+        event.stopPropagation();
+        shellOpen.postMessage({ url: url.href });
+      },
+      true,
+    );
+  }
+
   document.addEventListener("paste", (event) => {
     if (document.activeElement !== el.input) return;
     const items = event.clipboardData ? Array.from(event.clipboardData.items) : [];

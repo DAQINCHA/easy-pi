@@ -50,6 +50,7 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
         configuration.websiteDataStore = .default()
         configuration.preferences.isElementFullscreenEnabled = true
         configuration.userContentController.add(scriptHandler, name: "shellLayout")
+        configuration.userContentController.add(scriptHandler, name: "shellOpen")
         configuration.userContentController.add(bridge, name: NotificationBridge.messageName)
         configuration.userContentController.addUserScript(bridge.userScript(permission: bridge.currentPermission()))
         webView = WKWebView(frame: .zero, configuration: configuration)
@@ -213,6 +214,11 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
 
     /// 网页报回侧栏宽度和折叠状态，拖动区跟着改宽度。
     fileprivate func handleShellMessage(_ message: WKScriptMessage) {
+        if message.name == "shellOpen" {
+            handleShellOpen(message)
+            return
+        }
+
         guard let body = message.body as? [String: Any] else { return }
 
         // 网页量出「新对话」的左边缘，红黄绿三个按钮跟着挪到同一个 x
@@ -236,6 +242,21 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
                 return NSRect(x: x, y: y, width: w, height: h)
             }
         }
+    }
+
+    /// 网页里点聊天链接：交给 macOS 默认浏览器 / 默认应用打开。
+    /// 只认 file / http / https 三种 scheme，别的（javascript:、mailto: 等）一律丢弃，
+    /// 免得网页里一段文本就能驱动外壳执行任意协议。
+    private func handleShellOpen(_ message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any],
+              let raw = body["url"] as? String,
+              let url = URL(string: raw),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "file" || scheme == "http" || scheme == "https" else {
+            NSLog("[easy-pi-shell] 忽略无法打开的链接：%@", String(describing: message.body))
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     private static func jsLiteral(_ text: String) -> String {
