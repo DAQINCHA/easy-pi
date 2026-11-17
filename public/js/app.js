@@ -5516,6 +5516,22 @@ function bindEvents() {
   el.toBottom.addEventListener("click", () => scrollBottom(true));
 
   el.messages.addEventListener("click", (event) => {
+    // 聊天区三类图片（用户发图、工具返回图、Markdown 图）点一下放大看原图。
+    // 只认这三种结构，附件缩略图、图标之类不受影响；包在链接里的图交给链接自己的点击逻辑。
+    const previewImage = event.target.closest(".bubble .images img, .tool-images img, .markdown img");
+    if (previewImage && !previewImage.closest("a")) {
+      const alt = (previewImage.getAttribute("alt") || "").trim();
+      const previewModal = openModal({
+        title: alt || "图片预览",
+        body:
+          '<div class="image-preview"><img src="' + escapeHtml(previewImage.src) +
+          '" alt="' + escapeHtml(alt || "图片预览") + '"></div>',
+      });
+      // 宽一点的弹窗单独用类，不动 .modal 的通用宽度。
+      previewModal.card.classList.add("modal-image");
+      return;
+    }
+
     const procToggle = event.target.closest("[data-proc-toggle]");
     if (procToggle) {
       const group = procToggle.closest(".proc");

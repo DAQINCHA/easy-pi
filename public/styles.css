@@ -2151,6 +2151,27 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .modal-body p { margin: 0 0 10px; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 0 18px 18px; }
 
+/* 图片预览：点聊天里的缩略图，用现有弹窗看原图。 */
+.bubble .images img,
+.tool-images img,
+.markdown img { cursor: zoom-in; }
+.modal.modal-image { width: min(1100px, 94vw); max-height: 92vh; }
+.modal.modal-image .modal-body { padding: 0 18px 18px; }
+.image-preview {
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev-2);
+  overflow: hidden;
+}
+.image-preview img {
+  display: block;
+  max-width: min(100%, 1040px);
+  max-height: min(74vh, 860px);
+  width: auto; height: auto;
+  object-fit: contain;
+}
+
 .btn {
   height: 32px;
   padding: 0 14px;
