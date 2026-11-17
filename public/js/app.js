@@ -5256,7 +5256,7 @@ function openSettingsMenu(anchor) {
       active: currentSkin() === skin.id,
       onClick: () => applySkin(skin.id),
     })),
-  ], { align: "right" });
+  ], { align: "right", className: "settings-menu" });
 }
 
 function sidebarVisible() {
