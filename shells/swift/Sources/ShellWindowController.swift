@@ -369,6 +369,16 @@ final class ShellWindowController: NSObject, WKNavigationDelegate, WKDownloadDel
             return
         }
 
+        // 网页里的 HTML 预览用 iframe.srcdoc 在本窗口内显示，WebKit 会为它做一次
+        // about:srcdoc 的子框架导航。只放行这一种小窗导航，主窗口跳转和 file:// 仍走下面的白名单。
+        if let frame = navigationAction.targetFrame,
+           !frame.isMainFrame,
+           let url = navigationAction.request.url,
+           url.scheme?.lowercased() == "about" {
+            decisionHandler(.allow)
+            return
+        }
+
         // 双保险：只放行跳回 pi 服务自身的导航，scheme（http/https）、host、port 都要和 appURL 一致。
         // 拖文件到空白处时 WebKit 会拿 file:// 当主框架导航，这里连它一起拦掉，避免白屏顶掉界面。
         // appURL 为 nil 理论上不会发生（load(_:) 总在 webView.load 之前赋值），也按拦截处理。
