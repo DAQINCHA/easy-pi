@@ -779,7 +779,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .session-wrap.running .session-item .m { display: block; }
 }
 
-.session-group-label.archived-toggle {
+.session-group-label.session-group-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -790,16 +790,16 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   padding: 8px 10px;
   margin-top: 6px;
 }
-.session-group-label.archived-toggle:hover { background: var(--bg-hover); color: var(--accent-fg); }
-.archived-toggle .count { color: var(--text-4); font-size: 10.5px; }
-.archived-toggle .chev {
+.session-group-label.session-group-toggle:hover { background: var(--bg-hover); color: var(--accent-fg); }
+.session-group-toggle .count { color: var(--text-4); font-size: 10.5px; }
+.session-group-toggle .chev {
   margin-left: auto;
   display: grid;
   place-items: center;
   transition: transform .2s var(--ease);
 }
-.archived-toggle .chev svg { width: 12px; height: 12px; }
-.archived-toggle.open .chev { transform: rotate(90deg); }
+.session-group-toggle .chev svg { width: 12px; height: 12px; }
+.session-group-toggle.open .chev { transform: rotate(90deg); }
 
 /* 侧栏只取最近一页；这一条让更早的会话按需翻出来。 */
 .session-more {

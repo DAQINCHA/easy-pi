@@ -128,6 +128,10 @@ const state = {
   searchSeq: 0,
   searchTimer: 0,
   searchAbort: null,
+  // 侧栏显示方式：flat = 平铺（默认，保持旧布局），grouped = 按置顶/对话/已归档分组。
+  sessionLayout: "flat",
+  pinnedOpen: true,
+  chatsOpen: true,
   archivedOpen: false,
   menuAnchor: null,
   es: null,
@@ -695,6 +699,16 @@ async function runSessionSearch(query, seq) {
   renderSessions();
 }
 
+function groupToggleHtml(label, count, open, attr) {
+  return (
+    '<button class="session-group-label session-group-toggle' + (open ? " open" : "") + '" type="button" ' + attr + ">" +
+    "<span>" + escapeHtml(label) + "</span>" +
+    '<span class="count">' + count + "</span>" +
+    '<span class="chev">' + ICON("right") + "</span>" +
+    "</button>"
+  );
+}
+
 function renderSessions() {
   const query = state.filter.trim();
   if (query) {
@@ -719,18 +733,30 @@ function renderSessions() {
   const archived = list.filter((session) => session.archived);
 
   let html = "";
-  // 置顶不再单独分组：仍然排在最前，靠常显的图钉识别。
-  for (const session of pinned) html += sessionItemHtml(session);
-  for (const session of active) html += sessionItemHtml(session);
+  if (state.sessionLayout === "grouped") {
+    if (pinned.length) {
+      const open = state.pinnedOpen;
+      html += groupToggleHtml("置顶", pinned.length, open, "data-toggle-pinned");
+      if (open) {
+        for (const session of pinned) html += sessionItemHtml(session);
+      }
+    }
+    if (active.length) {
+      const open = state.chatsOpen;
+      html += groupToggleHtml("对话", active.length, open, "data-toggle-chats");
+      if (open) {
+        for (const session of active) html += sessionItemHtml(session);
+      }
+    }
+  } else {
+    // 平铺：置顶仍然排在最前，靠常显的图钉识别。
+    for (const session of pinned) html += sessionItemHtml(session);
+    for (const session of active) html += sessionItemHtml(session);
+  }
 
   if (archived.length) {
     const open = state.archivedOpen || Boolean(query);
-    html +=
-      '<button class="session-group-label archived-toggle' + (open ? " open" : "") + '" type="button" data-toggle-archive>' +
-      "<span>已归档</span>" +
-      '<span class="count">' + archived.length + "</span>" +
-      '<span class="chev">' + ICON("right") + "</span>" +
-      "</button>";
+    html += groupToggleHtml("已归档", archived.length, open, "data-toggle-archive");
     if (open) {
       for (const session of archived) html += sessionItemHtml(session);
     }
@@ -5179,6 +5205,28 @@ function applySkin(id) {
   }
 }
 
+const SESSION_LAYOUT_KEY = "piwebui.sessionLayout";
+
+// 默认平铺：老用户没存过偏好时行为保持不变。
+function currentSessionLayout() {
+  try {
+    return localStorage.getItem(SESSION_LAYOUT_KEY) === "grouped" ? "grouped" : "flat";
+  } catch {
+    return "flat";
+  }
+}
+
+function applySessionLayout(layout) {
+  const next = layout === "grouped" ? "grouped" : "flat";
+  state.sessionLayout = next;
+  try {
+    localStorage.setItem(SESSION_LAYOUT_KEY, next);
+  } catch {
+    /* ignore */
+  }
+  renderSessions();
+}
+
 function openSettingsMenu(anchor) {
   // 同一个按钮再点一次就收起：菜单已经开在这个锚点上时直接关掉。
   if (!el.menuLayer.hidden && state.menuAnchor === anchor) {
@@ -5187,6 +5235,7 @@ function openSettingsMenu(anchor) {
   }
   const mode = themePreference(document.documentElement.dataset.mode);
   const notifyOn = notifyEnabled();
+  const layout = currentSessionLayout();
   openMenu(anchor, [
     { labelOnly: true, label: "通知" },
     {
@@ -5201,6 +5250,10 @@ function openSettingsMenu(anchor) {
     { icon: "sun", label: THEME_LABELS.light, active: mode === "light", onClick: () => applyTheme("light") },
     { icon: "moon", label: THEME_LABELS.dark, active: mode === "dark", onClick: () => applyTheme("dark") },
     { icon: "monitor", label: THEME_LABELS.system, active: mode === "system", onClick: () => applyTheme("system") },
+    { sep: true },
+    { labelOnly: true, label: "会话栏" },
+    { label: "平铺", active: layout === "flat", onClick: () => applySessionLayout("flat") },
+    { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },
     { sep: true },
     { labelOnly: true, label: "皮肤" },
     ...SKINS.map((skin) => ({
@@ -5352,6 +5405,20 @@ function bindEvents() {
       refreshSessions().finally(() => {
         if (document.body.contains(loadMore)) loadMore.disabled = false;
       });
+      return;
+    }
+
+    const pinnedToggle = event.target.closest("[data-toggle-pinned]");
+    if (pinnedToggle) {
+      state.pinnedOpen = !state.pinnedOpen;
+      renderSessions();
+      return;
+    }
+
+    const chatsToggle = event.target.closest("[data-toggle-chats]");
+    if (chatsToggle) {
+      state.chatsOpen = !state.chatsOpen;
+      renderSessions();
       return;
     }
 
@@ -5894,6 +5961,7 @@ async function boot() {
   } catch {
     /* ignore */
   }
+  state.sessionLayout = currentSessionLayout();
   connectSessionEvents();
   systemTheme.addEventListener("change", () => {
     if (document.documentElement.dataset.mode === "system") applyTheme("system");
