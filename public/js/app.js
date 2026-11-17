@@ -3190,31 +3190,35 @@ function writeNotifyPref(on) {
   }
 }
 
-async function toggleNotify() {
-  if (readNotifyPref()) {
-    writeNotifyPref(false);
-    toast("已关闭完成通知");
-    return;
-  }
-  if (!("Notification" in window)) {
-    toast("当前浏览器不支持系统通知", "error");
-    return;
-  }
-  // 权限请求必须发生在用户点击的手势里；已经是 denied 就不再反复请求。
-  let permission = Notification.permission;
-  if (permission === "default") {
-    try {
-      permission = await Notification.requestPermission();
-    } catch {
-      permission = "denied";
+// 菜单里「开」「关」是两个独立选项。已经处于目标状态时直接返回，
+// 避免重复点当前项反而把偏好切走（旧版 toggle 的毛病）。
+async function setNotifyPref(on) {
+  if (on) {
+    if (notifyEnabled()) return;
+    if (!("Notification" in window)) {
+      toast("当前浏览器不支持系统通知", "error");
+      return;
     }
-  }
-  if (permission !== "granted") {
-    toast("通知权限被拒绝，请到浏览器或系统设置里允许", "error");
+    // 权限请求必须发生在用户点击的手势里；已经是 denied 就不再反复请求。
+    let permission = Notification.permission;
+    if (permission === "default") {
+      try {
+        permission = await Notification.requestPermission();
+      } catch {
+        permission = "denied";
+      }
+    }
+    if (permission !== "granted") {
+      toast("通知权限被拒绝，请到浏览器或系统设置里允许", "error");
+      return;
+    }
+    writeNotifyPref(true);
+    toast("已开启完成通知");
     return;
   }
-  writeNotifyPref(true);
-  toast("已开启完成通知");
+  if (!readNotifyPref()) return;
+  writeNotifyPref(false);
+  toast("已关闭完成通知");
 }
 
 async function showDoneNotification(title, body, tag) {
@@ -4774,15 +4778,6 @@ async function setPinned(file, pinned) {
   }
 }
 
-function notifyStatusText(on) {
-  if (on) return "开";
-  if (!readNotifyPref()) return "关";
-  const permission = notificationPermissionState();
-  if (permission === "unsupported") return "关（当前浏览器不支持）";
-  if (permission === "denied") return "关（权限已拒绝）";
-  return "关（尚未授权）";
-}
-
 /* ------------------------------------------------------------------ */
 /* modal + stats + rename                                              */
 /* ------------------------------------------------------------------ */
@@ -5238,13 +5233,8 @@ function openSettingsMenu(anchor) {
   const layout = currentSessionLayout();
   openMenu(anchor, [
     { labelOnly: true, label: "通知" },
-    {
-      icon: notifyOn ? "bell" : "bell-off",
-      label: "完成时通知",
-      sub: notifyStatusText(notifyOn),
-      active: notifyOn,
-      onClick: () => void toggleNotify(),
-    },
+    { icon: "bell", label: "开", active: notifyOn, onClick: () => void setNotifyPref(true) },
+    { icon: "bell-off", label: "关", active: !notifyOn, onClick: () => void setNotifyPref(false) },
     { sep: true },
     { labelOnly: true, label: "会话栏" },
     { label: "分组", active: layout === "grouped", onClick: () => applySessionLayout("grouped") },

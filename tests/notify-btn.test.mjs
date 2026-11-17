@@ -47,7 +47,6 @@ function loadNotifyHelpers(env) {
     localStorage: env.localStorage,
   });
   vm.runInContext(helpers, context);
-  vm.runInContext(functionSource("notifyStatusText"), context);
   return context;
 }
 
@@ -76,26 +75,12 @@ describe("completion notification settings", () => {
     assert.equal(loadNotifyHelpers({ window: granted, localStorage: storage() }).notifyEnabled(), false);
   });
 
-  it("turns the stored preference and real permission into status text", () => {
-    const ctxFor = (permission, pref) =>
-      loadNotifyHelpers({
-        window: permission ? { Notification: { permission } } : {},
-        localStorage: storage(pref === null ? {} : { "piwebui.notify": pref }),
-      });
-
-    assert.equal(ctxFor("granted", "1").notifyStatusText(true), "开");
-    assert.equal(ctxFor("granted", "0").notifyStatusText(false), "关");
-    assert.equal(ctxFor(null, "1").notifyStatusText(false), "关（当前浏览器不支持）");
-    assert.equal(ctxFor("denied", "1").notifyStatusText(false), "关（权限已拒绝）");
-    assert.equal(ctxFor("default", "1").notifyStatusText(false), "关（尚未授权）");
-  });
-
   it("requests permission only when it is still default, and never from the render path", () => {
-    const toggle = functionSource("toggleNotify");
-    assert.match(toggle, /Notification\.requestPermission/);
-    assert.match(toggle, /permission === "default"/);
-    assert.match(toggle, /writeNotifyPref\(false\)/);
-    assert.match(toggle, /writeNotifyPref\(true\)/);
+    const set = functionSource("setNotifyPref");
+    assert.match(set, /Notification\.requestPermission/);
+    assert.match(set, /permission === "default"/);
+    assert.match(set, /writeNotifyPref\(false\)/);
+    assert.match(set, /writeNotifyPref\(true\)/);
     assert.equal((JS.match(/Notification\.requestPermission/g) || []).length, 1);
 
     assert.doesNotMatch(functionSource("notificationPermissionState"), /requestPermission/);
@@ -103,15 +88,16 @@ describe("completion notification settings", () => {
     assert.doesNotMatch(functionSource("openSettingsMenu"), /requestPermission/);
   });
 
-  it("shows the notify row in the settings menu with bell / slashed bell, subtitle and check", () => {
+  it("shows two explicit on / off rows under the notify group, with the current state checked", () => {
     const menu = functionSource("openSettingsMenu");
     assert.match(menu, /labelOnly: true, label: "通知"/);
-    assert.match(menu, /label: "完成时通知"/);
-    assert.match(menu, /icon: notifyOn \? "bell" : "bell-off"/);
-    assert.match(menu, /sub: notifyStatusText\(notifyOn\)/);
-    assert.match(menu, /active: notifyOn/);
-    assert.match(menu, /toggleNotify\(\)/);
+    assert.match(menu, /label: "开", active: notifyOn/);
+    assert.match(menu, /label: "关", active: !notifyOn/);
+    assert.match(menu, /setNotifyPref\(true\)/);
+    assert.match(menu, /setNotifyPref\(false\)/);
     assert.match(menu, /const notifyOn = notifyEnabled\(\)/);
+    assert.doesNotMatch(menu, /完成时通知/);
+    assert.doesNotMatch(menu, /toggleNotify/);
   });
 
   it("ships hollow bell symbols and no shirt icon", () => {
