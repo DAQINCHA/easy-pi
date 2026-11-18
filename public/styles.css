@@ -2759,13 +2759,11 @@ html[data-skin="paper"][data-theme="dark"] {
   --code-head: #ede4d614;
   --brand-tile: #e6d9c3;
 
-  /* 悬停 = 暖沙反相底 + 深字，与浅色模式的赪红悬停同一份组件语义 */
-  --bg-hover: #e0d2b8;
-  /* 选中 = 朱砂印泥底 + 纸色字：比悬停的暖沙暗得多，菜单里不会看混；
-     纸色字对印泥底 7.68，次级字 5.32，悬停/聚焦时整行仍换成 --bg-hover + --accent-fg（11.43） */
-  --bg-selected: #822f20;
-  --text-selected: #f7eee0;
-  --text-selected-muted: #dcc5ae;
+  /* 与浅色赭红纸本一致：悬停 = 赭红底 + 纸色字，选中 = 浅纸底 + 墨字 */
+  --bg-hover: #8b2e1f;
+  --bg-selected: #efe6d6;
+  --text-selected: #211b14;
+  --text-selected-muted: #6d5a48;
 
   --text-1: #ede4d6;
   --text-2: #d9ccb9;
@@ -2777,10 +2775,13 @@ html[data-skin="paper"][data-theme="dark"] {
   --border: #45382b;
   --border-strong: #57452f;
 
-  --accent: #d97757;
-  --accent-fg: #211b14;
-  --accent-hover: #e08968;
-  --accent-pressed: #b95f42;
+  /* 实心块（发送键、新对话）用赭红 + 纸色字（5.16），比 --bg-hover 略亮一档，
+     压在深色底上仍有 3.07 的轮廓，不至于成了一团黑；
+     深底上要显眼的链接 / 焦点环 / 滑块仍保留亮橙红 #d97757 */
+  --accent: #b3442a;
+  --accent-fg: #faf6ee;
+  --accent-hover: #bb4a2c;
+  --accent-pressed: #a63b26;
   --focus-ring: #d97757;
   --blue: #d97757;
   --link: #d97757;
