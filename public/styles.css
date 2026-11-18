@@ -2761,9 +2761,11 @@ html[data-skin="paper"][data-theme="dark"] {
 
   /* 悬停 = 暖沙反相底 + 深字，与浅色模式的赪红悬停同一份组件语义 */
   --bg-hover: #e0d2b8;
-  --bg-selected: #d8c9ad;
-  --text-selected: #211b14;
-  --text-selected-muted: #5d4b3a;
+  /* 选中 = 朱砂印泥底 + 纸色字：比悬停的暖沙暗得多，菜单里不会看混；
+     纸色字对印泥底 7.68，次级字 5.32，悬停/聚焦时整行仍换成 --bg-hover + --accent-fg（11.43） */
+  --bg-selected: #822f20;
+  --text-selected: #f7eee0;
+  --text-selected-muted: #dcc5ae;
 
   --text-1: #ede4d6;
   --text-2: #d9ccb9;
