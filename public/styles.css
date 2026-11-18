@@ -3915,11 +3915,10 @@ html[data-skin="aurora"][data-theme="light"] {
   --aurora-newchat: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(222, 242, 248, 0.92));
   --aurora-newchat-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(208, 236, 244, 0.95));
   --aurora-panel: rgba(255, 255, 255, 0.72);
-  /* 浮层（弹窗 / 菜单 / 提示条）比正文卡片更不透明：弹窗底下压着 --scrim 的深色遮罩，
-     0.62 的白底会透出遮罩、整块发灰（实际落到约 #cacdd2）。菜单、提示条同理，
-     只是背后没有遮罩所以不明显。玻璃质感仍由 blur + 细线 + 高光负责。 */
-  --aurora-panel-strong: rgba(255, 255, 255, 0.96);
-  --aurora-panel-blur: rgba(255, 255, 255, 0.9);
+  /* 浮层保持玻璃的半透明：blur 负责糊掉背后细节、透出极光光斑，
+     明亮感靠下面的浅色 --scrim，不靠把白底刷成不透明 */
+  --aurora-panel-strong: rgba(255, 255, 255, 0.9);
+  --aurora-panel-blur: rgba(255, 255, 255, 0.7);
   --aurora-bubble: rgba(255, 255, 255, 0.86);
   --aurora-bubble-blur: rgba(255, 255, 255, 0.55);
   --aurora-composer: rgba(255, 255, 255, 0.86);
@@ -4004,7 +4003,10 @@ html[data-skin="aurora"][data-theme="light"] {
   --ring-track: rgba(23, 34, 54, 0.2);
   --scroll-thumb: rgba(60, 115, 160, 0.32);
   --scroll-thumb-hover: #0d7a86;
-  --scrim: rgba(16, 30, 45, 0.55);
+  /* 浅色遮罩：弹窗底下压一层雾蓝而不是压黑，背后极光的光斑才透得上来；
+     半透明白玻璃叠在雾蓝上仍是明亮的 #ecf2f8，不是发灰的 #caced3。
+     同一个变量也用于移动端抽屉的 .scrim，浅色下同样是「雾蓝压一层」。 */
+  --scrim: rgba(96, 148, 196, 0.34);
 }
 
 html[data-skin="aurora"][data-theme="dark"] {
